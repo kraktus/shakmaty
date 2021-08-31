@@ -11,7 +11,7 @@ pub trait PositionHashable: Position + ZobristHashable {} // trait alias
 
 #[derive(Debug)]
 pub struct Zobrist<P: PositionHashable> {
-    pos: PositionHashable,
+    pos: P,
     zobrist: u64
 }
 
