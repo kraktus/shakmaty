@@ -2780,7 +2780,6 @@ fn gen_pawn_moves<P: Position>(pos: &P, target: Bitboard, moves: &mut MoveList) 
 
     let double_moves = single_moves.relative_shift(pos.turn(), 8)
         & Bitboard::relative_rank(pos.turn(), Rank::Fourth)
-            .with(Bitboard::relative_rank(pos.turn(), Rank::Third))
         & !pos.board().occupied();
 
     for to in single_moves & target & !Bitboard::BACKRANKS {
