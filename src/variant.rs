@@ -249,7 +249,7 @@ impl VariantPosition {
         }
     }
 
-    fn borrow(&self) -> &dyn Position {
+    fn borrow(&self) -> &impl Position {
         match *self {
             VariantPosition::Chess(ref pos) => pos,
             VariantPosition::Atomic(ref pos) => pos,
@@ -262,7 +262,7 @@ impl VariantPosition {
         }
     }
 
-    fn borrow_mut(&mut self) -> &mut dyn Position {
+    fn borrow_mut(&mut self) -> &mut impl Position {
         match *self {
             VariantPosition::Chess(ref mut pos) => pos,
             VariantPosition::Atomic(ref mut pos) => pos,
