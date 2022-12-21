@@ -1,36 +1,19 @@
-// This file is part of the shakmaty library.
-// Copyright (C) 2017-2022 Niklas Fiekas <niklas.fiekas@backscattering.de>
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-use core::{array, convert::identity, num};
-
 use crate::{color::Color, types::Piece, util::overflow_error};
-
-/// Piece types: `Pawn`, `Knight`, `Bishop`, `Rook`, `Queen`, `King`.
-///
-/// # Examples
-///
-/// ```
-/// use shakmaty::Role;
-///
-/// // Piece types are indexed from 1 to 6.
-/// assert_eq!(u32::from(Role::Pawn), 1);
-/// assert_eq!(u32::from(Role::King), 6);
-/// ```
+use core::{array, convert::identity, num};
+#[doc = " Piece types: `Pawn`, `Knight`, `Bishop`, `Rook`, `Queen`, `King`."]
+#[doc = ""]
+#[doc = " # Examples"]
+#[doc = ""]
+#[doc = " ```"]
+#[doc = " use shakmaty::Role;"]
+#[doc = ""]
+#[doc = " // Piece types are indexed from 1 to 6."]
+#[doc = " assert_eq!(u32::from(Role::Pawn), 1);"]
+#[doc = " assert_eq!(u32::from(Role::King), 6);"]
+#[doc = " ```"]
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Hash)]
+#[repr(C)]
 pub enum Role {
     Pawn = 1,
     Knight = 2,
@@ -39,20 +22,19 @@ pub enum Role {
     Queen = 5,
     King = 6,
 }
-
 impl Role {
-    /// Gets the piece type from its English letter.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use shakmaty::Role;
-    ///
-    /// assert_eq!(Role::from_char('K'), Some(Role::King));
-    /// assert_eq!(Role::from_char('n'), Some(Role::Knight));
-    ///
-    /// assert_eq!(Role::from_char('X'), None);
-    /// ```
+    #[doc = " Gets the piece type from its English letter."]
+    #[doc = ""]
+    #[doc = " # Examples"]
+    #[doc = ""]
+    #[doc = " ```"]
+    #[doc = " use shakmaty::Role;"]
+    #[doc = ""]
+    #[doc = " assert_eq!(Role::from_char('K'), Some(Role::King));"]
+    #[doc = " assert_eq!(Role::from_char('n'), Some(Role::Knight));"]
+    #[doc = ""]
+    #[doc = " assert_eq!(Role::from_char('X'), None);"]
+    #[doc = " ```"]
     pub const fn from_char(ch: char) -> Option<Role> {
         match ch {
             'P' | 'p' => Some(Role::Pawn),
@@ -64,30 +46,28 @@ impl Role {
             _ => None,
         }
     }
-
-    /// Gets a [`Piece`] of the given color.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use shakmaty::{Color, Role};
-    ///
-    /// assert_eq!(Role::King.of(Color::Black), Color::Black.king());
-    /// ```
+    #[doc = " Gets a [`Piece`] of the given color."]
+    #[doc = ""]
+    #[doc = " # Examples"]
+    #[doc = ""]
+    #[doc = " ```"]
+    #[doc = " use shakmaty::{Color, Role};"]
+    #[doc = ""]
+    #[doc = " assert_eq!(Role::King.of(Color::Black), Color::Black.king());"]
+    #[doc = " ```"]
     #[inline]
     pub const fn of(self, color: Color) -> Piece {
         Piece { color, role: self }
     }
-
-    /// Gets the English letter for the piece type.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use shakmaty::Role;
-    ///
-    /// assert_eq!(Role::Rook.char(), 'r');
-    /// ```
+    #[doc = " Gets the English letter for the piece type."]
+    #[doc = ""]
+    #[doc = " # Examples"]
+    #[doc = ""]
+    #[doc = " ```"]
+    #[doc = " use shakmaty::Role;"]
+    #[doc = ""]
+    #[doc = " assert_eq!(Role::Rook.char(), 'r');"]
+    #[doc = " ```"]
     pub const fn char(self) -> char {
         match self {
             Role::Pawn => 'p',
@@ -98,16 +78,15 @@ impl Role {
             Role::King => 'k',
         }
     }
-
-    /// Gets the uppercase English letter for the piece type.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use shakmaty::Role;
-    ///
-    /// assert_eq!(Role::Rook.upper_char(), 'R');
-    /// ```
+    #[doc = " Gets the uppercase English letter for the piece type."]
+    #[doc = ""]
+    #[doc = " # Examples"]
+    #[doc = ""]
+    #[doc = " ```"]
+    #[doc = " use shakmaty::Role;"]
+    #[doc = ""]
+    #[doc = " assert_eq!(Role::Rook.upper_char(), 'R');"]
+    #[doc = " ```"]
     pub const fn upper_char(self) -> char {
         match self {
             Role::Pawn => 'P',
@@ -118,8 +97,7 @@ impl Role {
             Role::King => 'K',
         }
     }
-
-    /// `Pawn`, `Knight`, `Bishop`, `Rook`, `Queen`, and `King`, in this order.
+    #[doc = " `Pawn`, `Knight`, `Bishop`, `Rook`, `Queen`, and `King`, in this order."]
     pub const ALL: [Role; 6] = [
         Role::Pawn,
         Role::Knight,
@@ -129,63 +107,13 @@ impl Role {
         Role::King,
     ];
 }
-
-macro_rules! int_from_role_impl {
-    ($($t:ty)+) => {
-        $(impl From<Role> for $t {
-            #[inline]
-            fn from(role: Role) -> $t {
-                role as $t
-            }
-        })+
-    }
-}
-
+macro_rules ! int_from_role_impl { ($ ($ t : ty) +) => { $ (impl From < Role > for $ t { # [inline] fn from (role : Role) -> $ t { role as $ t } }) + } }
 int_from_role_impl! { u8 i8 u16 i16 u32 i32 u64 i64 usize isize }
-
-macro_rules! nonzero_int_from_role_impl {
-    ($($t:ty)+) => {
-        $(impl From<Role> for $t {
-            #[inline]
-            fn from(role: Role) -> $t {
-                <$t>::new(role.into()).expect("nonzero role discriminant")
-            }
-        })+
-    }
-}
-
-nonzero_int_from_role_impl! {
-    num::NonZeroU8 num::NonZeroI8
-    num::NonZeroU16 num::NonZeroI16
-    num::NonZeroU32 num::NonZeroI32
-    num::NonZeroU64 num::NonZeroI64
-    num::NonZeroUsize num::NonZeroIsize
-}
-
-macro_rules! try_role_from_int_impl {
-    ($($t:ty)+) => {
-        $(impl core::convert::TryFrom<$t> for Role {
-            type Error = num::TryFromIntError;
-
-            #[inline]
-            fn try_from(value: $t) -> Result<Role, Self::Error> {
-                Ok(match value {
-                    1 => Role::Pawn,
-                    2 => Role::Knight,
-                    3 => Role::Bishop,
-                    4 => Role::Rook,
-                    5 => Role::Queen,
-                    6 => Role::King,
-                    _ => return Err(overflow_error()),
-                })
-            }
-        })+
-    }
-}
-
+macro_rules ! nonzero_int_from_role_impl { ($ ($ t : ty) +) => { $ (impl From < Role > for $ t { # [inline] fn from (role : Role) -> $ t { <$ t >:: new (role . into ()) . expect ("nonzero role discriminant") } }) + } }
+nonzero_int_from_role_impl! { num :: NonZeroU8 num :: NonZeroI8 num :: NonZeroU16 num :: NonZeroI16 num :: NonZeroU32 num :: NonZeroI32 num :: NonZeroU64 num :: NonZeroI64 num :: NonZeroUsize num :: NonZeroIsize }
+macro_rules ! try_role_from_int_impl { ($ ($ t : ty) +) => { $ (impl core :: convert :: TryFrom <$ t > for Role { type Error = num :: TryFromIntError ; # [inline] fn try_from (value : $ t) -> Result < Role , Self :: Error > { Ok (match value { 1 => Role :: Pawn , 2 => Role :: Knight , 3 => Role :: Bishop , 4 => Role :: Rook , 5 => Role :: Queen , 6 => Role :: King , _ => return Err (overflow_error ()) , }) } }) + } }
 try_role_from_int_impl! { u8 i8 u16 i16 u32 i32 u64 i64 usize isize }
-
-/// Container with values for each [`Role`].
+#[doc = " Container with values for each [`Role`]."]
 #[derive(Copy, Clone, Default, Eq, PartialEq, Debug, Hash)]
 #[repr(C)]
 pub struct ByRole<T> {
@@ -196,7 +124,6 @@ pub struct ByRole<T> {
     pub queen: T,
     pub king: T,
 }
-
 impl<T> ByRole<T> {
     pub fn new_with<F>(mut init: F) -> ByRole<T>
     where
@@ -211,27 +138,22 @@ impl<T> ByRole<T> {
             king: init(Role::King),
         }
     }
-
     #[inline]
     pub const fn get(&self, role: Role) -> &T {
-        // Safety: Trivial offset into #[repr(C)] struct.
         unsafe {
             &*(self as *const ByRole<T>)
                 .cast::<T>()
                 .offset(role as isize - 1)
         }
     }
-
     #[inline]
     pub fn get_mut(&mut self, role: Role) -> &mut T {
-        // Safety: Trivial offset into #[repr(C)] struct.
         unsafe {
             &mut *(self as *mut ByRole<T>)
                 .cast::<T>()
                 .offset(role as isize - 1)
         }
     }
-
     #[inline]
     pub fn for_each<F>(self, mut f: F)
     where
@@ -244,7 +166,6 @@ impl<T> ByRole<T> {
         f(self.queen);
         f(self.king);
     }
-
     #[inline]
     pub fn map<U, F>(self, mut f: F) -> ByRole<U>
     where
@@ -259,7 +180,6 @@ impl<T> ByRole<T> {
             king: f(self.king),
         }
     }
-
     #[inline]
     pub fn find<F>(&self, mut predicate: F) -> Option<Role>
     where
@@ -281,7 +201,6 @@ impl<T> ByRole<T> {
             None
         }
     }
-
     #[inline]
     pub const fn as_ref(&self) -> ByRole<&T> {
         ByRole {
@@ -293,7 +212,6 @@ impl<T> ByRole<T> {
             king: &self.king,
         }
     }
-
     #[inline]
     pub fn as_mut(&mut self) -> ByRole<&mut T> {
         ByRole {
@@ -305,7 +223,6 @@ impl<T> ByRole<T> {
             king: &mut self.king,
         }
     }
-
     pub fn zip<U>(self, other: ByRole<U>) -> ByRole<(T, U)> {
         ByRole {
             pawn: (self.pawn, other.pawn),
@@ -316,43 +233,35 @@ impl<T> ByRole<T> {
             king: (self.king, other.king),
         }
     }
-
     pub fn zip_role(self) -> ByRole<(Role, T)> {
         ByRole::new_with(identity).zip(self)
     }
-
     pub fn iter(&self) -> array::IntoIter<&T, 6> {
         self.as_ref().into_iter()
     }
-
     pub fn iter_mut(&mut self) -> array::IntoIter<&mut T, 6> {
         self.as_mut().into_iter()
     }
 }
-
 #[cfg(feature = "variant")]
 impl ByRole<u8> {
     pub(crate) fn count(&self) -> usize {
         self.iter().map(|c| usize::from(*c)).sum()
     }
 }
-
 impl<T: Copy> ByRole<&T> {
     pub fn copied(self) -> ByRole<T> {
         self.map(|item| *item)
     }
 }
-
 impl<T: Clone> ByRole<&T> {
     pub fn cloned(self) -> ByRole<T> {
         self.map(Clone::clone)
     }
 }
-
 impl<T> IntoIterator for ByRole<T> {
     type Item = T;
     type IntoIter = array::IntoIter<T, 6>;
-
     fn into_iter(self) -> Self::IntoIter {
         [
             self.pawn,
@@ -364,4 +273,35 @@ impl<T> IntoIterator for ByRole<T> {
         ]
         .into_iter()
     }
+}
+#[no_mangle]
+pub extern "C" fn ffi_new_with<T, F>(mut init: F) -> ByRole<T>
+where
+    F: FnMut(Role) -> T,
+{
+    <ByRole<T>>::new_with(init)
+}
+#[no_mangle]
+pub extern "C" fn ffi_zip<T, U>(self_: ByRole<T>, other: ByRole<U>) -> ByRole<(T, U)> {
+    <ByRole<T>>::zip(self_, other)
+}
+#[no_mangle]
+pub extern "C" fn ffi_zip_role<T>(self_: ByRole<T>) -> ByRole<(Role, T)> {
+    <ByRole<T>>::zip_role(self_)
+}
+#[no_mangle]
+pub extern "C" fn ffi_iter<T>(self_: &ByRole<T>) -> array::IntoIter<&T, 6> {
+    <ByRole<T>>::iter(self_)
+}
+#[no_mangle]
+pub extern "C" fn ffi_iter_mut<T>(self_: &mut ByRole<T>) -> array::IntoIter<&mut T, 6> {
+    <ByRole<T>>::iter_mut(self_)
+}
+#[no_mangle]
+pub extern "C" fn ffi_copied<T: Copy>(self_: ByRole<&T>) -> ByRole<T> {
+    <ByRole<&T>>::copied(self_)
+}
+#[no_mangle]
+pub extern "C" fn ffi_cloned<T: Clone>(self_: ByRole<&T>) -> ByRole<T> {
+    <ByRole<&T>>::cloned(self_)
 }
