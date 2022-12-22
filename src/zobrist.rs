@@ -1,37 +1,56 @@
-#![doc = " Zobrist hashing for positions."]
-#![doc = ""]
-#![doc = " # Stability"]
-#![doc = ""]
-#![doc = " The Zobrist hash for each position is guaranteed to be stable. Changing"]
-#![doc = " hash values is considered a semver breaking change and will be noted in the"]
-#![doc = " changelog."]
-#![doc = ""]
-#![doc = " # Warning: Forged collisions"]
-#![doc = ""]
-#![doc = " Zobrist hashes have good collision resistance, but can be"]
-#![doc = " forged efficiently."]
-#![doc = ""]
-#![doc = " Additionally, in this implementation, impossible positions with"]
-#![doc = " more than standard material in Crazyhouse pockets are particularly"]
-#![doc = " prone to collisions."]
-#![doc = ""]
-#![doc = " # Examples"]
-#![doc = ""]
-#![doc = " ```"]
-#![doc = " use shakmaty::{Chess, EnPassantMode, zobrist::{Zobrist64, ZobristHash}};"]
-#![doc = ""]
-#![doc = " let pos = Chess::default();"]
-#![doc = " assert_eq!(pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal), Zobrist64(0x463b96181691fc9c));"]
-#![doc = " ```"]
-use crate::{
-    Board, CastlingSide, Color, EnPassantMode, File, Piece, Position, RemainingChecks, Role, Square,
-};
+// This file is part of the shakmaty library.
+// Copyright (C) 2017-2022 Niklas Fiekas <niklas.fiekas@backscattering.de>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+//! Zobrist hashing for positions.
+//!
+//! # Stability
+//!
+//! The Zobrist hash for each position is guaranteed to be stable. Changing
+//! hash values is considered a semver breaking change and will be noted in the
+//! changelog.
+//!
+//! # Warning: Forged collisions
+//!
+//! Zobrist hashes have good collision resistance, but can be
+//! forged efficiently.
+//!
+//! Additionally, in this implementation, impossible positions with
+//! more than standard material in Crazyhouse pockets are particularly
+//! prone to collisions.
+//!
+//! # Examples
+//!
+//! ```
+//! use shakmaty::{Chess, EnPassantMode, zobrist::{Zobrist64, ZobristHash}};
+//!
+//! let pos = Chess::default();
+//! assert_eq!(pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal), Zobrist64(0x463b96181691fc9c));
+//! ```
+
 use core::{
     fmt,
     hash::{Hash, Hasher},
     ops::{BitXor, BitXorAssign},
 };
-#[doc = " Integer type that can be returned as a Zobrist hash."]
+
+use crate::{
+    Board, CastlingSide, Color, EnPassantMode, File, Piece, Position, RemainingChecks, Role, Square,
+};
+
+/// Integer type that can be returned as a Zobrist hash.
 pub trait ZobristValue: BitXorAssign + Default + Copy {
     fn zobrist_for_piece(square: Square, piece: Piece) -> Self;
     fn zobrist_for_white_turn() -> Self;
@@ -41,18 +60,21 @@ pub trait ZobristValue: BitXorAssign + Default + Copy {
     fn zobrist_for_promoted(square: Square) -> Self;
     fn zobrist_for_pocket(color: Color, role: Role, pieces: u8) -> Self;
 }
+
 macro_rules! zobrist_value_impl {
-    ($ t : ident , $ proxy : ty , $ bits : literal) => {
+    ($t:ident, $proxy:ty, $bits:literal) => {
         #[derive(Default, Copy, Clone, Eq)]
         #[doc = "A [`ZobristValue`] with "]
-        # [doc = stringify ! ($bits)]
+        #[doc = stringify!($bits)]
         #[doc = " bits."]
         pub struct $t(pub $proxy);
+
         impl PartialEq for $t {
             fn eq(&self, other: &$t) -> bool {
                 self.0 == other.0
             }
         }
+
         impl From<$proxy> for $t {
             fn from(value: $proxy) -> $t {
                 $t(value)
@@ -63,6 +85,7 @@ macro_rules! zobrist_value_impl {
                 value.0
             }
         }
+
         impl BitXor for $t {
             type Output = $t;
             #[inline]
@@ -103,6 +126,7 @@ macro_rules! zobrist_value_impl {
                 self.0 ^= rhs.0;
             }
         }
+
         impl fmt::Debug for $t {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 write!(f, concat!(stringify!($t), "({:#x})"), self.0)
@@ -128,14 +152,17 @@ macro_rules! zobrist_value_impl {
                 fmt::Binary::fmt(&self.0, f)
             }
         }
+
         impl ZobristValue for $t {
             fn zobrist_for_piece(square: Square, piece: Piece) -> $t {
                 let piece_idx = (usize::from(piece.role) - 1) * 2 + piece.color as usize;
                 $t(PIECE_MASKS[64 * piece_idx + usize::from(square)] as $proxy)
             }
+
             fn zobrist_for_white_turn() -> $t {
                 $t(WHITE_TURN_MASK as $proxy)
             }
+
             fn zobrist_for_castling_right(color: Color, side: CastlingSide) -> $t {
                 $t(CASTLING_RIGHT_MASKS[match (color, side) {
                     (Color::White, CastlingSide::KingSide) => 0,
@@ -144,9 +171,11 @@ macro_rules! zobrist_value_impl {
                     (Color::Black, CastlingSide::QueenSide) => 3,
                 }] as $proxy)
             }
+
             fn zobrist_for_en_passant_file(file: File) -> $t {
                 $t(EN_PASSANT_FILE_MASKS[usize::from(file)] as $proxy)
             }
+
             fn zobrist_for_remaining_checks(color: Color, remaining: RemainingChecks) -> $t {
                 if remaining < RemainingChecks::default() {
                     $t(
@@ -157,9 +186,11 @@ macro_rules! zobrist_value_impl {
                     <$t>::default()
                 }
             }
+
             fn zobrist_for_promoted(square: Square) -> $t {
                 $t(PROMOTED_MASKS[usize::from(square)] as $proxy)
             }
+
             fn zobrist_for_pocket(color: Color, role: Role, pieces: u8) -> $t {
                 if 0 < pieces && pieces <= 16 {
                     let color_idx = color as usize;
@@ -171,21 +202,24 @@ macro_rules! zobrist_value_impl {
                 }
             }
         }
+
         #[cfg(feature = "nohash-hasher")]
         impl nohash_hasher::IsEnabled for $t {}
     };
 }
-zobrist_value_impl! { Zobrist8 , u8 , 8 }
-zobrist_value_impl! { Zobrist16 , u16 , 16 }
-zobrist_value_impl! { Zobrist32 , u32 , 32 }
-zobrist_value_impl! { Zobrist64 , u64 , 64 }
-zobrist_value_impl! { Zobrist128 , u128 , 128 }
+
+zobrist_value_impl! { Zobrist8, u8, 8 }
+zobrist_value_impl! { Zobrist16, u16, 16 }
+zobrist_value_impl! { Zobrist32, u32, 32 }
+zobrist_value_impl! { Zobrist64, u64, 64 }
+zobrist_value_impl! { Zobrist128, u128, 128 }
+
 impl Hash for Zobrist128 {
     fn hash<H>(&self, state: &mut H)
     where
         H: Hasher,
     {
-        state.write_u64(self.0 as u64)
+        state.write_u64(self.0 as u64) // Truncating!
     }
 }
 impl Hash for Zobrist64 {
@@ -220,6 +254,7 @@ impl Hash for Zobrist8 {
         state.write_u8(self.0)
     }
 }
+
 impl From<Zobrist128> for Zobrist64 {
     fn from(value: Zobrist128) -> Zobrist64 {
         Zobrist64(value.0 as u64)
@@ -240,6 +275,7 @@ impl From<Zobrist128> for Zobrist8 {
         Zobrist8(value.0 as u8)
     }
 }
+
 impl From<Zobrist64> for Zobrist32 {
     fn from(value: Zobrist64) -> Zobrist32 {
         Zobrist32(value.0 as u32)
@@ -255,6 +291,7 @@ impl From<Zobrist64> for Zobrist8 {
         Zobrist8(value.0 as u8)
     }
 }
+
 impl From<Zobrist32> for Zobrist16 {
     fn from(value: Zobrist32) -> Zobrist16 {
         Zobrist16(value.0 as u16)
@@ -265,23 +302,28 @@ impl From<Zobrist32> for Zobrist8 {
         Zobrist8(value.0 as u8)
     }
 }
+
 impl From<Zobrist16> for Zobrist8 {
     fn from(value: Zobrist16) -> Zobrist8 {
         Zobrist8(value.0 as u8)
     }
 }
-#[doc = " Supports Zobrist hashing."]
+
+/// Supports Zobrist hashing.
 pub trait ZobristHash {
-    #[doc = " Computes the Zobrist hash of the position from scratch. The hash"]
-    #[doc = " includes the position, except halfmove clock and fullmove number."]
+    /// Computes the Zobrist hash of the position from scratch. The hash
+    /// includes the position, except halfmove clock and fullmove number.
     fn zobrist_hash<V: ZobristValue>(&self, mode: EnPassantMode) -> V;
 }
+
 impl<P: Position> ZobristHash for P {
     fn zobrist_hash<V: ZobristValue>(&self, mode: EnPassantMode) -> V {
         let mut zobrist = hash_board(self.board());
+
         for sq in self.promoted() {
             zobrist ^= V::zobrist_for_promoted(sq);
         }
+
         if let Some(pockets) = self.pockets() {
             for (color, pocket) in pockets.as_ref().zip_color() {
                 for role in Role::ALL {
@@ -289,9 +331,11 @@ impl<P: Position> ZobristHash for P {
                 }
             }
         }
+
         if self.turn() == Color::White {
             zobrist ^= V::zobrist_for_white_turn();
         }
+
         let castles = self.castles();
         for color in Color::ALL {
             for side in CastlingSide::ALL {
@@ -300,17 +344,21 @@ impl<P: Position> ZobristHash for P {
                 }
             }
         }
+
         if let Some(sq) = self.ep_square(mode) {
             zobrist ^= V::zobrist_for_en_passant_file(sq.file());
         }
+
         if let Some(remaining_checks) = self.remaining_checks() {
             for (color, remaining) in remaining_checks.as_ref().zip_color() {
                 zobrist ^= V::zobrist_for_remaining_checks(color, *remaining);
             }
         }
+
         zobrist
     }
 }
+
 fn hash_board<V: ZobristValue>(board: &Board) -> V {
     let mut zobrist = V::default();
     for (sq, piece) in board.clone() {
@@ -318,10 +366,12 @@ fn hash_board<V: ZobristValue>(board: &Board) -> V {
     }
     zobrist
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{fen::Fen, CastlingMode, Chess};
+
     #[test]
     fn test_polyglot() {
         let reference_values = [
@@ -362,12 +412,14 @@ mod tests {
                 Zobrist64(0x5c3f9b829b279560),
             ),
         ];
+
         for (fen, expected) in reference_values {
             let pos: Chess = fen
                 .parse::<Fen>()
                 .expect("valid fen")
                 .into_position(CastlingMode::Standard)
                 .expect("legal position");
+
             assert_eq!(
                 pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal),
                 expected,
@@ -376,9 +428,11 @@ mod tests {
             );
         }
     }
+
     #[cfg(feature = "variant")]
     #[test]
     fn test_variants_not_distinguished() {
+        // Useful when indexing a table of opening names by Zorbist hash.
         let chess: Zobrist128 = Chess::default().zobrist_hash(EnPassantMode::Legal);
         let crazyhouse = crate::variant::Crazyhouse::default().zobrist_hash(EnPassantMode::Legal);
         let three_check = crate::variant::ThreeCheck::default().zobrist_hash(EnPassantMode::Legal);
@@ -388,8 +442,10 @@ mod tests {
         assert_eq!(chess, three_check);
         assert_eq!(chess, king_of_the_hill);
     }
+
     #[test]
     fn test_full_pockets() {
+        // 8/8/8/7k/8/8/3K4/8[ppppppppppppppppnnnnbbbbrrrrqq] w - - 0 54
         for color in Color::ALL {
             assert_ne!(
                 Zobrist64::zobrist_for_pocket(color, Role::Pawn, 16),
@@ -401,26 +457,32 @@ mod tests {
             );
         }
     }
+
     #[cfg(feature = "nohash-hasher")]
     #[test]
     fn test_nohash_hasher() {
         let mut hasher = nohash_hasher::NoHashHasher::<Zobrist128>::default();
         Zobrist128(128).hash(&mut hasher);
         assert_eq!(hasher.finish(), 128);
+
         let mut hasher = nohash_hasher::NoHashHasher::<Zobrist64>::default();
         Zobrist64(64).hash(&mut hasher);
         assert_eq!(hasher.finish(), 64);
+
         let mut hasher = nohash_hasher::NoHashHasher::<Zobrist32>::default();
         Zobrist32(32).hash(&mut hasher);
         assert_eq!(hasher.finish(), 32);
+
         let mut hasher = nohash_hasher::NoHashHasher::<Zobrist16>::default();
         Zobrist16(16).hash(&mut hasher);
         assert_eq!(hasher.finish(), 16);
+
         let mut hasher = nohash_hasher::NoHashHasher::<Zobrist8>::default();
         Zobrist8(8).hash(&mut hasher);
         assert_eq!(hasher.finish(), 8);
     }
 }
+
 const PIECE_MASKS: [u128; 64 * 6 * 2] = [
     0x52b3_75aa_7c0d_7bac_9d39_247e_3377_6d41,
     0x208d_169a_534f_2cf5_2af7_3980_05aa_a5c7,
@@ -1191,13 +1253,16 @@ const PIECE_MASKS: [u128; 64 * 6 * 2] = [
     0x2e44_32e6_ce49_96d9_917f_1dd5_f888_6c61,
     0x576e_c7a8_4e0b_932d_d20d_8c88_c8ff_e65f,
 ];
+
 const WHITE_TURN_MASK: u128 = 0x3815_e537_b622_2c85_f8d6_26aa_af27_8509;
+
 const CASTLING_RIGHT_MASKS: [u128; 2 * 2] = [
     0xca3c_7f8d_050c_44ba_31d7_1dce_64b2_c310,
     0x8f50_a115_834e_5414_f165_b587_df89_8190,
     0x7756_8e6e_6151_6b92_a57e_6339_dd2c_f3a0,
     0xd153_e6cf_8d19_84ea_1ef6_e6db_b196_1ec9,
 ];
+
 const EN_PASSANT_FILE_MASKS: [u128; 8] = [
     0x1309_9942_ab63_3504_70cc_73d9_0bc2_6e24,
     0x946c_7352_9a2f_3850_e21a_6b35_df0c_3ad7,
@@ -1208,6 +1273,7 @@ const EN_PASSANT_FILE_MASKS: [u128; 8] = [
     0xe2a1_aff4_0d08_315c_77c6_21cc_9fb3_a483,
     0x47ec_43ff_bc09_2584_67a3_4dac_4356_550b,
 ];
+
 const REMAINING_CHECKS_MASKS: [u128; 3 * 2] = [
     0x6a2a_d922_a69a_13e9_1d6d_c0ee_61ce_803e,
     0x49b5_72c7_9420_27d5_c628_4b65_3d38_e96a,
@@ -1216,6 +1282,7 @@ const REMAINING_CHECKS_MASKS: [u128; 3 * 2] = [
     0x90a8_52ca_cfc0_adeb_fdee_f116_02d6_b443,
     0xc8ce_065f_15fe_38f5_1b0c_e419_8b38_01a6,
 ];
+
 const PROMOTED_MASKS: [u128; 64] = [
     0x2b91_78eb_57f3_db25_2f99_00cc_2b7a_19ca,
     0x17d1_6678_351d_3778_f752_35be_b018_86d3,
@@ -1282,6 +1349,7 @@ const PROMOTED_MASKS: [u128; 64] = [
     0xa8ba_af8b_31da_09a5_8f16_c910_d677_6589,
     0x06a7_9ac4_14c9_632e_7e3d_e4bf_bef5_566f,
 ];
+
 const POCKET_MASKS: [u128; 2 * 6 * 16] = [
     0x6e21_a47d_5b56_1a1d_b262_e9f9_d612_3320,
     0x4263_a757_e414_fe44_9153_3947_cdaa_8bec,

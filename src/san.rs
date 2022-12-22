@@ -1,78 +1,99 @@
-#![doc = " Read and write Standard Algebraic Notation."]
-#![doc = ""]
-#![doc = " # Examples"]
-#![doc = ""]
-#![doc = " Parse and write SANs:"]
-#![doc = ""]
-#![doc = " ```"]
-#![doc = " use shakmaty::{Chess, Position, san::San};"]
-#![doc = ""]
-#![doc = " let san: San = \"Nf3\".parse()?;"]
-#![doc = " assert_eq!(san.to_string(), \"Nf3\");"]
-#![doc = " # Ok::<_, shakmaty::san::ParseSanError>(())"]
-#![doc = " ```"]
-#![doc = ""]
-#![doc = " Converting to a move:"]
-#![doc = ""]
-#![doc = " ```"]
-#![doc = " # use shakmaty::{Chess, Position, san::{ParseSanError, San, SanError}};"]
-#![doc = " use shakmaty::{Square, Role, Move};"]
-#![doc = " #"]
-#![doc = " # let san: San = \"Nf3\".parse()?;"]
-#![doc = " let pos = Chess::default();"]
-#![doc = " let m = san.to_move(&pos)?;"]
-#![doc = ""]
-#![doc = " assert_eq!(m, Move::Normal {"]
-#![doc = "     role: Role::Knight,"]
-#![doc = "     from: Square::G1,"]
-#![doc = "     capture: None,"]
-#![doc = "     to: Square::F3,"]
-#![doc = "     promotion: None,"]
-#![doc = " });"]
-#![doc = ""]
-#![doc = " # #[derive(Debug)] struct CommonError;"]
-#![doc = " # impl From<ParseSanError> for CommonError { fn from(_: ParseSanError) -> Self { Self } }"]
-#![doc = " # impl From<SanError> for CommonError { fn from(_: SanError) -> Self { Self } }"]
-#![doc = " # Ok::<_, CommonError>(())"]
-#![doc = " ```"]
-#![doc = ""]
-#![doc = " Back to a (possibly disambiguated) SAN:"]
-#![doc = ""]
-#![doc = " ```"]
-#![doc = " # use shakmaty::{Chess, Position, Role, san::{ParseSanError, San, SanError}};"]
-#![doc = " #"]
-#![doc = " # let pos = Chess::default();"]
-#![doc = " # let san: San = \"Nf3\".parse()?;"]
-#![doc = " # let m = san.to_move(&pos)?;"]
-#![doc = " assert_eq!(San::from_move(&pos, &m).to_string(), \"Nf3\");"]
-#![doc = ""]
-#![doc = " # #[derive(Debug)] struct CommonError;"]
-#![doc = " # impl From<ParseSanError> for CommonError { fn from(_: ParseSanError) -> Self { Self } }"]
-#![doc = " # impl From<SanError> for CommonError { fn from(_: SanError) -> Self { Self } }"]
-#![doc = " # Ok::<_, CommonError>(())"]
-#![doc = " ```"]
-use crate::{CastlingSide, File, Move, MoveList, Outcome, Position, Rank, Role, Square};
+// This file is part of the shakmaty library.
+// Copyright (C) 2017-2022 Niklas Fiekas <niklas.fiekas@backscattering.de>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+//! Read and write Standard Algebraic Notation.
+//!
+//! # Examples
+//!
+//! Parse and write SANs:
+//!
+//! ```
+//! use shakmaty::{Chess, Position, san::San};
+//!
+//! let san: San = "Nf3".parse()?;
+//! assert_eq!(san.to_string(), "Nf3");
+//! # Ok::<_, shakmaty::san::ParseSanError>(())
+//! ```
+//!
+//! Converting to a move:
+//!
+//! ```
+//! # use shakmaty::{Chess, Position, san::{ParseSanError, San, SanError}};
+//! use shakmaty::{Square, Role, Move};
+//! #
+//! # let san: San = "Nf3".parse()?;
+//! let pos = Chess::default();
+//! let m = san.to_move(&pos)?;
+//!
+//! assert_eq!(m, Move::Normal {
+//!     role: Role::Knight,
+//!     from: Square::G1,
+//!     capture: None,
+//!     to: Square::F3,
+//!     promotion: None,
+//! });
+//!
+//! # #[derive(Debug)] struct CommonError;
+//! # impl From<ParseSanError> for CommonError { fn from(_: ParseSanError) -> Self { Self } }
+//! # impl From<SanError> for CommonError { fn from(_: SanError) -> Self { Self } }
+//! # Ok::<_, CommonError>(())
+//! ```
+//!
+//! Back to a (possibly disambiguated) SAN:
+//!
+//! ```
+//! # use shakmaty::{Chess, Position, Role, san::{ParseSanError, San, SanError}};
+//! #
+//! # let pos = Chess::default();
+//! # let san: San = "Nf3".parse()?;
+//! # let m = san.to_move(&pos)?;
+//! assert_eq!(San::from_move(&pos, &m).to_string(), "Nf3");
+//!
+//! # #[derive(Debug)] struct CommonError;
+//! # impl From<ParseSanError> for CommonError { fn from(_: ParseSanError) -> Self { Self } }
+//! # impl From<SanError> for CommonError { fn from(_: SanError) -> Self { Self } }
+//! # Ok::<_, CommonError>(())
+//! ```
+
 use core::{fmt, str::FromStr};
-#[doc = " Error when parsing a syntactially invalid SAN."]
+
+use crate::{CastlingSide, File, Move, MoveList, Outcome, Position, Rank, Role, Square};
+
+/// Error when parsing a syntactially invalid SAN.
 #[derive(Clone, Debug)]
-#[repr(C)]
 pub struct ParseSanError;
+
 impl fmt::Display for ParseSanError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("invalid san")
     }
 }
+
 #[cfg(feature = "std")]
 impl std::error::Error for ParseSanError {}
-#[doc = " `IllegalSan` or `AmbiguousSan`."]
+
+/// `IllegalSan` or `AmbiguousSan`.
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[repr(C)]
 pub enum SanError {
-    #[doc = " Standard algebraic notation does not match a legal move."]
+    /// Standard algebraic notation does not match a legal move.
     IllegalSan,
-    #[doc = " Standard algebraic notation matches multiple legal moves."]
+    /// Standard algebraic notation matches multiple legal moves.
     AmbiguousSan,
 }
+
 impl fmt::Display for SanError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match *self {
@@ -81,11 +102,12 @@ impl fmt::Display for SanError {
         })
     }
 }
+
 #[cfg(feature = "std")]
 impl std::error::Error for SanError {}
-#[doc = " A move in Standard Algebraic Notation."]
+
+/// A move in Standard Algebraic Notation.
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
-#[repr(C)]
 pub enum San {
     Normal {
         role: Role,
@@ -102,16 +124,18 @@ pub enum San {
     },
     Null,
 }
+
 impl San {
-    #[doc = " Parses a SAN. Ignores a possible check or checkmate suffix."]
-    #[doc = ""]
-    #[doc = " # Errors"]
-    #[doc = ""]
-    #[doc = " Returns [`ParseSanError`] if `san` is not syntactically valid."]
+    /// Parses a SAN. Ignores a possible check or checkmate suffix.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseSanError`] if `san` is not syntactically valid.
     pub fn from_ascii(mut san: &[u8]) -> Result<San, ParseSanError> {
         if san.ends_with(b"#") || san.ends_with(b"+") {
             san = &san[0..(san.len() - 1)];
         }
+
         if san == b"--" {
             Ok(San::Null)
         } else if san == b"O-O" {
@@ -130,6 +154,7 @@ impl San {
             })
         } else {
             let mut chars = san.iter().copied();
+
             let ch = chars.next().ok_or(ParseSanError)?;
             let (role, next) = if ch.is_ascii_uppercase() {
                 (
@@ -139,16 +164,21 @@ impl San {
             } else {
                 (Role::Pawn, ch)
             };
+
             let (file, next) = if let Some(file) = File::from_char(char::from(next)) {
                 (Some(file), chars.next().ok_or(ParseSanError)?)
             } else {
                 (None, next)
             };
+
             let (rank, next) = if let Some(rank) = Rank::from_char(char::from(next)) {
                 (Some(rank), chars.next())
             } else {
                 (None, Some(next))
             };
+
+            // This section is safe, because coordinates are already validated
+            // by file_from_char or rank_from_char.
             let (capture, file, rank, to, next) = if let Some(next) = next {
                 if next == b'x' {
                     let to_file = chars
@@ -179,6 +209,7 @@ impl San {
                     Square::from_coords(file.ok_or(ParseSanError)?, rank.ok_or(ParseSanError)?);
                 (false, None, None, square, None)
             };
+
             let promotion = match next {
                 Some(b'=') => Some(
                     chars
@@ -189,6 +220,7 @@ impl San {
                 Some(_) => return Err(ParseSanError),
                 None => None,
             };
+
             Ok(San::Normal {
                 role,
                 file,
@@ -199,20 +231,23 @@ impl San {
             })
         }
     }
-    #[doc = " Converts a move to Standard Algebraic Notation."]
+
+    /// Converts a move to Standard Algebraic Notation.
     pub fn from_move<P: Position>(pos: &P, m: &Move) -> San {
         let legals = match *m {
             Move::Normal { role, to, .. } if role != Role::Pawn => pos.san_candidates(role, to),
             _ => MoveList::new(),
         };
+
         San::disambiguate(m, &legals)
     }
-    #[doc = " Tries to convert the `San` to a legal move in the context of a"]
-    #[doc = " position."]
-    #[doc = ""]
-    #[doc = " # Errors"]
-    #[doc = ""]
-    #[doc = " Returns [`SanError`] if there is no unique matching legal move."]
+
+    /// Tries to convert the `San` to a legal move in the context of a
+    /// position.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SanError`] if there is no unique matching legal move.
     pub fn to_move<P: Position>(&self, pos: &P) -> Result<Move, SanError> {
         match *self {
             San::Normal {
@@ -267,6 +302,7 @@ impl San {
             San::Null => Err(SanError::IllegalSan),
         }
     }
+
     pub fn disambiguate(m: &Move, moves: &MoveList) -> San {
         match *m {
             Move::Normal {
@@ -294,6 +330,7 @@ impl San {
                 to,
                 promotion,
             } => {
+                // Disambiguate.
                 let (rank, file) = moves
                     .iter()
                     .filter(|c| match *c {
@@ -321,6 +358,7 @@ impl San {
                         }
                         _ => (rank, file),
                     });
+
                 San::Normal {
                     role,
                     file: if file { Some(from.file()) } else { None },
@@ -345,54 +383,58 @@ impl San {
             Move::Put { role, to } => San::Put { role, to },
         }
     }
-    #[doc = " Searches a [`MoveList`] for a unique matching move."]
-    #[doc = ""]
-    #[doc = " # Errors"]
-    #[doc = ""]
-    #[doc = " Returns [`SanError`] if there is no unique matching legal move."]
+
+    /// Searches a [`MoveList`] for a unique matching move.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SanError`] if there is no unique matching legal move.
     pub fn find_move<'a>(&self, moves: &'a MoveList) -> Result<&'a Move, SanError> {
         let mut filtered = moves.iter().filter(|m| self.matches(m));
+
         let m = match filtered.next() {
             Some(m) => m,
             None => return Err(SanError::IllegalSan),
         };
+
         if filtered.next().is_some() {
             Err(SanError::AmbiguousSan)
         } else {
             Ok(m)
         }
     }
-    #[doc = " Test if the `San` can match the `Move` (in any position)."]
-    #[doc = ""]
-    #[doc = " # Examples"]
-    #[doc = ""]
-    #[doc = " ```"]
-    #[doc = " use shakmaty::{Square, Role, Move, san::San};"]
-    #[doc = ""]
-    #[doc = " let m = Move::Normal {"]
-    #[doc = "     role: Role::Knight,"]
-    #[doc = "     from: Square::G1,"]
-    #[doc = "     to: Square::F3,"]
-    #[doc = "     capture: None,"]
-    #[doc = "     promotion: None,"]
-    #[doc = " };"]
-    #[doc = ""]
-    #[doc = " let nf3 = San::from_ascii(b\"Nf3\")?;"]
-    #[doc = " assert!(nf3.matches(&m));"]
-    #[doc = ""]
-    #[doc = " let ng1f3 = San::from_ascii(b\"Ng1f3\")?;"]
-    #[doc = " assert!(ng1f3.matches(&m));"]
-    #[doc = ""]
-    #[doc = " // capture does not match"]
-    #[doc = " let nxf3 = San::from_ascii(b\"Nxf3\")?;"]
-    #[doc = " assert!(!nxf3.matches(&m));"]
-    #[doc = ""]
-    #[doc = " // other file does not match"]
-    #[doc = " let nef3 = San::from_ascii(b\"Nef3\")?;"]
-    #[doc = " assert!(!nef3.matches(&m));"]
-    #[doc = ""]
-    #[doc = " # Ok::<_, shakmaty::san::ParseSanError>(())"]
-    #[doc = " ```"]
+
+    /// Test if the `San` can match the `Move` (in any position).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use shakmaty::{Square, Role, Move, san::San};
+    ///
+    /// let m = Move::Normal {
+    ///     role: Role::Knight,
+    ///     from: Square::G1,
+    ///     to: Square::F3,
+    ///     capture: None,
+    ///     promotion: None,
+    /// };
+    ///
+    /// let nf3 = San::from_ascii(b"Nf3")?;
+    /// assert!(nf3.matches(&m));
+    ///
+    /// let ng1f3 = San::from_ascii(b"Ng1f3")?;
+    /// assert!(ng1f3.matches(&m));
+    ///
+    /// // capture does not match
+    /// let nxf3 = San::from_ascii(b"Nxf3")?;
+    /// assert!(!nxf3.matches(&m));
+    ///
+    /// // other file does not match
+    /// let nef3 = San::from_ascii(b"Nef3")?;
+    /// assert!(!nef3.matches(&m));
+    ///
+    /// # Ok::<_, shakmaty::san::ParseSanError>(())
+    /// ```
     pub fn matches(&self, m: &Move) -> bool {
         match *self {
             San::Normal {
@@ -436,12 +478,15 @@ impl San {
         }
     }
 }
+
 impl FromStr for San {
     type Err = ParseSanError;
+
     fn from_str(san: &str) -> Result<San, ParseSanError> {
         San::from_ascii(san.as_bytes())
     }
 }
+
 impl fmt::Display for San {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
@@ -482,13 +527,14 @@ impl fmt::Display for San {
         }
     }
 }
-#[doc = " Check (`+`) or checkmate (`#`) suffix."]
+
+/// Check (`+`) or checkmate (`#`) suffix.
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
-#[repr(C)]
 pub enum Suffix {
     Check,
     Checkmate,
 }
+
 impl Suffix {
     pub const fn char(self) -> char {
         match self {
@@ -496,6 +542,7 @@ impl Suffix {
             Suffix::Checkmate => '#',
         }
     }
+
     pub const fn from_char(ch: char) -> Option<Suffix> {
         match ch {
             '+' => Some(Suffix::Check),
@@ -503,6 +550,7 @@ impl Suffix {
             _ => None,
         }
     }
+
     pub fn from_position<P: Position>(pos: &P) -> Option<Suffix> {
         if matches!(pos.outcome(), Some(Outcome::Decisive { .. })) {
             Some(Suffix::Checkmate)
@@ -513,24 +561,26 @@ impl Suffix {
         }
     }
 }
+
 impl fmt::Display for Suffix {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.char())
     }
 }
-#[doc = " A [`San`] and possible check and checkmate suffixes."]
+
+/// A [`San`] and possible check and checkmate suffixes.
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
-#[repr(C)]
 pub struct SanPlus {
     pub san: San,
     pub suffix: Option<Suffix>,
 }
+
 impl SanPlus {
-    #[doc = " Parses a SAN and possible check and checkmate suffix."]
-    #[doc = ""]
-    #[doc = " # Errors"]
-    #[doc = ""]
-    #[doc = " Returns [`ParseSanError`] if `san` is not syntactically valid."]
+    /// Parses a SAN and possible check and checkmate suffix.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseSanError`] if `san` is not syntactically valid.
     pub fn from_ascii(san: &[u8]) -> Result<SanPlus, ParseSanError> {
         San::from_ascii(san).map(|result| SanPlus {
             san: result,
@@ -540,15 +590,16 @@ impl SanPlus {
                 .and_then(|ch| Suffix::from_char(char::from(ch))),
         })
     }
-    #[doc = " Converts a move to Standard Algebraic Notation including possible"]
-    #[doc = " check and checkmate suffixes. Also plays the move."]
-    #[doc = ""]
-    #[doc = " It is the callers responsibility to ensure the move is legal."]
-    #[doc = ""]
-    #[doc = " # Panics"]
-    #[doc = ""]
-    #[doc = " Illegal moves can corrupt the state of the position and may"]
-    #[doc = " (or may not) panic or cause panics on future calls."]
+
+    /// Converts a move to Standard Algebraic Notation including possible
+    /// check and checkmate suffixes. Also plays the move.
+    ///
+    /// It is the callers responsibility to ensure the move is legal.
+    ///
+    /// # Panics
+    ///
+    /// Illegal moves can corrupt the state of the position and may
+    /// (or may not) panic or cause panics on future calls.
     pub fn from_move_and_play_unchecked<P: Position>(pos: &mut P, m: &Move) -> SanPlus {
         let san = San::from_move(pos, m);
         pos.play_unchecked(m);
@@ -557,6 +608,7 @@ impl SanPlus {
             suffix: Suffix::from_position(pos),
         }
     }
+
     pub fn from_move<P: Position>(mut pos: P, m: &Move) -> SanPlus {
         let moves = match *m {
             Move::Normal { role, to, .. } | Move::Put { role, to } => pos.san_candidates(role, to),
@@ -577,12 +629,15 @@ impl SanPlus {
         }
     }
 }
+
 impl FromStr for SanPlus {
     type Err = ParseSanError;
+
     fn from_str(san: &str) -> Result<SanPlus, ParseSanError> {
         SanPlus::from_ascii(san.as_bytes())
     }
 }
+
 impl fmt::Display for SanPlus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.san)?;
@@ -592,18 +647,22 @@ impl fmt::Display for SanPlus {
         Ok(())
     }
 }
+
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{fen::Fen, CastlingMode, Chess};
     #[cfg(feature = "alloc")]
     use alloc::string::ToString;
     use core::mem;
+
+    use super::*;
+    use crate::{fen::Fen, CastlingMode, Chess};
+
     #[test]
     fn test_size() {
         assert!(mem::size_of::<San>() <= 8);
         assert!(mem::size_of::<SanPlus>() <= 8);
     }
+
     #[cfg(feature = "alloc")]
     #[test]
     fn test_read_write() {
@@ -616,15 +675,18 @@ mod tests {
             assert_eq!(*san, result, "read {} write {}", san, result);
         }
     }
+
     #[test]
     fn test_pawn_capture_without_file() {
         let san = "f6".parse::<San>().expect("valid san");
+
         let pos = "4k3/8/5p2/4P3/8/8/8/4K3 w -"
             .parse::<Fen>()
             .expect("valid fen")
             .into_position::<Chess>(CastlingMode::Standard)
             .expect("legal fen");
         assert_eq!(san.to_move(&pos), Err(SanError::IllegalSan));
+
         let pos = "4k3/8/8/4Pp2/8/8/8/4K3 w - f6"
             .parse::<Fen>()
             .expect("valid fen")
@@ -632,6 +694,7 @@ mod tests {
             .expect("legal fen");
         assert_eq!(san.to_move(&pos), Err(SanError::IllegalSan));
     }
+
     #[cfg(feature = "alloc")]
     #[test]
     fn test_lax_pawn_move_san_roundtrip() {
@@ -649,24 +712,4 @@ mod tests {
         );
         assert_eq!(san.to_string(), "6h8");
     }
-}
-#[no_mangle]
-pub extern "C" fn ffi_san_disambiguate(m: &Move, moves: &MoveList) -> San {
-    <San>::disambiguate(m, moves)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_suffix_char(self_: Suffix) -> char {
-    <Suffix>::char(self_)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_suffix_from_char(ch: char) -> Option<Suffix> {
-    <Suffix>::from_char(ch)
-}
-#[no_mangle]
-pub extern "C" fn ffi_suffix_from_position<P: Position>(pos: &P) -> Option<Suffix> {
-    <Suffix>::from_position(pos)
-}
-#[no_mangle]
-pub extern "C" fn ffi_sanplus_from_move<P: Position>(mut pos: P, m: &Move) -> SanPlus {
-    <SanPlus>::from_move(pos, m)
 }

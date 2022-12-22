@@ -1,18 +1,37 @@
-#![doc = " White or black."]
+// This file is part of the shakmaty library.
+// Copyright (C) 2017-2022 Niklas Fiekas <niklas.fiekas@backscattering.de>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+//! White or black.
+
+use core::{array, convert::identity, fmt, mem, ops, str::FromStr};
+
 use crate::{
     role::{ByRole, Role},
     square::Rank,
     types::Piece,
 };
-use core::{array, convert::identity, fmt, mem, ops, str::FromStr};
-#[doc = " `White` or `Black`."]
+
+/// `White` or `Black`.
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-#[repr(C)]
 pub enum Color {
     Black = 0,
     White = 1,
 }
+
 impl Color {
     pub const fn from_char(ch: char) -> Option<Color> {
         Some(match ch {
@@ -21,9 +40,11 @@ impl Color {
             _ => return None,
         })
     }
+
     pub fn char(self) -> char {
         self.fold_wb('w', 'b')
     }
+
     fn from_name(name: &str) -> Option<Color> {
         Some(match name {
             "white" => Color::White,
@@ -31,12 +52,14 @@ impl Color {
             _ => return None,
         })
     }
+
     const fn name(self) -> &'static str {
         match self {
             Color::Black => "black",
             Color::White => "white",
         }
     }
+
     #[inline]
     pub const fn from_white(white: bool) -> Color {
         if white {
@@ -45,6 +68,7 @@ impl Color {
             Color::Black
         }
     }
+
     #[inline]
     pub const fn from_black(black: bool) -> Color {
         if black {
@@ -53,6 +77,7 @@ impl Color {
             Color::White
         }
     }
+
     #[inline]
     pub fn fold_wb<T>(self, white: T, black: T) -> T {
         match self {
@@ -60,6 +85,7 @@ impl Color {
             Color::Black => black,
         }
     }
+
     #[inline]
     pub const fn is_white(self) -> bool {
         matches!(self, Color::White)
@@ -68,13 +94,15 @@ impl Color {
     pub const fn is_black(self) -> bool {
         matches!(self, Color::Black)
     }
-    #[doc = " Same as the NOT (`!`) operator, but usable in `const` contexts."]
+
+    /// Same as the NOT (`!`) operator, but usable in `const` contexts.
     pub const fn other(self) -> Color {
         match self {
             Color::White => Color::Black,
             Color::Black => Color::White,
         }
     }
+
     #[inline]
     pub const fn backrank(self) -> Rank {
         match self {
@@ -82,6 +110,7 @@ impl Color {
             Color::Black => Rank::Eighth,
         }
     }
+
     #[inline]
     pub fn relative_rank(self, rank: Rank) -> Rank {
         match self {
@@ -89,76 +118,94 @@ impl Color {
             Color::Black => rank.flip_vertical(),
         }
     }
+
     #[inline]
     pub const fn pawn(self) -> Piece {
         Role::Pawn.of(self)
     }
+
     #[inline]
     pub const fn knight(self) -> Piece {
         Role::Knight.of(self)
     }
+
     #[inline]
     pub const fn bishop(self) -> Piece {
         Role::Bishop.of(self)
     }
+
     #[inline]
     pub const fn rook(self) -> Piece {
         Role::Rook.of(self)
     }
+
     #[inline]
     pub const fn queen(self) -> Piece {
         Role::Queen.of(self)
     }
+
     #[inline]
     pub const fn king(self) -> Piece {
         Role::King.of(self)
     }
-    #[doc = " `White` and `Black`, in this order."]
+
+    /// `White` and `Black`, in this order.
     pub const ALL: [Color; 2] = [Color::White, Color::Black];
 }
+
 impl ops::Not for Color {
     type Output = Color;
+
     #[inline]
     fn not(self) -> Color {
         self.fold_wb(Color::Black, Color::White)
     }
 }
+
 impl ops::BitXor<bool> for Color {
     type Output = Color;
+
     #[inline]
     fn bitxor(self, flip: bool) -> Color {
         Color::from_white(self.is_white() ^ flip)
     }
 }
+
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.name())
     }
 }
-#[doc = " Error when parsing an invalid color name."]
+
+/// Error when parsing an invalid color name.
 #[derive(Clone, Debug)]
-#[repr(C)]
 pub struct ParseColorError;
+
 impl fmt::Display for ParseColorError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("invalid color")
     }
 }
+
 #[cfg(feature = "std")]
 impl std::error::Error for ParseColorError {}
+
 impl FromStr for Color {
     type Err = ParseColorError;
+
     fn from_str(s: &str) -> Result<Color, ParseColorError> {
         Color::from_name(s).ok_or(ParseColorError)
     }
 }
-#[doc = " Container with values for each [`Color`]."]
+
+/// Container with values for each [`Color`].
 #[derive(Copy, Clone, Default, Eq, PartialEq, Debug, Hash)]
 #[repr(C)]
 pub struct ByColor<T> {
     pub black: T,
     pub white: T,
 }
+
 impl<T> ByColor<T> {
     #[inline]
     pub fn new_with<F>(mut init: F) -> ByColor<T>
@@ -170,21 +217,27 @@ impl<T> ByColor<T> {
             black: init(Color::Black),
         }
     }
+
     #[inline]
     pub const fn get(&self, color: Color) -> &T {
+        // Safety: Trivial offset into #[repr(C)] struct.
         unsafe {
             &*(self as *const ByColor<T>)
                 .cast::<T>()
                 .offset(color as isize)
         }
     }
+
     #[inline]
     pub fn get_mut(&mut self, color: Color) -> &mut T {
+        // Safety: Trivial offset into #[repr(C)] struct.
         unsafe { &mut *(self as *mut ByColor<T>).cast::<T>().offset(color as isize) }
     }
+
     pub fn flip(&mut self) {
         mem::swap(&mut self.white, &mut self.black);
     }
+
     #[must_use]
     pub fn into_flipped(self) -> ByColor<T> {
         ByColor {
@@ -192,6 +245,7 @@ impl<T> ByColor<T> {
             white: self.black,
         }
     }
+
     #[inline]
     pub fn for_each<F>(self, mut f: F)
     where
@@ -200,6 +254,7 @@ impl<T> ByColor<T> {
         f(self.white);
         f(self.black);
     }
+
     #[inline]
     pub fn map<U, F>(self, mut f: F) -> ByColor<U>
     where
@@ -210,6 +265,7 @@ impl<T> ByColor<T> {
             black: f(self.black),
         }
     }
+
     #[inline]
     pub fn find<F>(&self, mut predicate: F) -> Option<Color>
     where
@@ -223,6 +279,7 @@ impl<T> ByColor<T> {
             None
         }
     }
+
     #[inline]
     pub const fn as_ref(&self) -> ByColor<&T> {
         ByColor {
@@ -230,6 +287,7 @@ impl<T> ByColor<T> {
             white: &self.white,
         }
     }
+
     #[inline]
     pub fn as_mut(&mut self) -> ByColor<&mut T> {
         ByColor {
@@ -237,119 +295,81 @@ impl<T> ByColor<T> {
             white: &mut self.white,
         }
     }
+
     pub fn zip<U>(self, other: ByColor<U>) -> ByColor<(T, U)> {
         ByColor {
             black: (self.black, other.black),
             white: (self.white, other.white),
         }
     }
+
     pub fn zip_color(self) -> ByColor<(Color, T)> {
         ByColor::new_with(identity).zip(self)
     }
+
     pub fn iter(&self) -> array::IntoIter<&T, 2> {
         self.as_ref().into_iter()
     }
+
     pub fn iter_mut(&mut self) -> array::IntoIter<&mut T, 2> {
         self.as_mut().into_iter()
     }
 }
+
 impl<T> ByColor<ByRole<T>> {
     pub const fn piece(&self, piece: Piece) -> &T {
         self.get(piece.color).get(piece.role)
     }
+
     pub fn piece_mut(&mut self, piece: Piece) -> &mut T {
         self.get_mut(piece.color).get_mut(piece.role)
     }
 }
+
 #[cfg(feature = "variant")]
 impl ByColor<ByRole<u8>> {
     pub(crate) fn count(&self) -> usize {
         self.iter().map(|side| side.count()).sum()
     }
 }
+
 impl<T: PartialOrd> ByColor<T> {
     pub fn normalize(&mut self) {
         if self.white < self.black {
             self.flip();
         }
     }
+
     #[must_use]
     pub fn into_normalized(mut self) -> ByColor<T> {
         self.normalize();
         self
     }
 }
+
 impl<T: PartialEq> ByColor<T> {
     pub fn is_symmetric(&self) -> bool {
         self.white == self.black
     }
 }
+
 impl<T: Copy> ByColor<&T> {
     pub fn copied(self) -> ByColor<T> {
         self.map(|item| *item)
     }
 }
+
 impl<T: Clone> ByColor<&T> {
     pub fn cloned(self) -> ByColor<T> {
         self.map(Clone::clone)
     }
 }
+
 impl<T> IntoIterator for ByColor<T> {
     type Item = T;
     type IntoIter = array::IntoIter<T, 2>;
+
     fn into_iter(self) -> Self::IntoIter {
         [self.white, self.black].into_iter()
     }
-}
-#[no_mangle]
-pub const extern "C" fn ffi_color_from_char(ch: char) -> Option<Color> {
-    <Color>::from_char(ch)
-}
-#[no_mangle]
-pub extern "C" fn ffi_color_char(self_: Color) -> char {
-    <Color>::char(self_)
-}
-#[no_mangle]
-pub extern "C" fn ffi_flip<T>(self_: &mut ByColor<T>) {
-    <ByColor<T>>::flip(self_)
-}
-#[no_mangle]
-pub extern "C" fn ffi_zip<T, U>(self_: ByColor<T>, other: ByColor<U>) -> ByColor<(T, U)> {
-    <ByColor<T>>::zip(self_, other)
-}
-#[no_mangle]
-pub extern "C" fn ffi_zip_color<T>(self_: ByColor<T>) -> ByColor<(Color, T)> {
-    <ByColor<T>>::zip_color(self_)
-}
-#[no_mangle]
-pub extern "C" fn ffi_iter<T>(self_: &ByColor<T>) -> array::IntoIter<&T, 2> {
-    <ByColor<T>>::iter(self_)
-}
-#[no_mangle]
-pub extern "C" fn ffi_iter_mut<T>(self_: &mut ByColor<T>) -> array::IntoIter<&mut T, 2> {
-    <ByColor<T>>::iter_mut(self_)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_piece<T>(self_: &ByColor<ByRole<T>>, piece: Piece) -> &T {
-    <ByColor<ByRole<T>>>::piece(self_, piece)
-}
-#[no_mangle]
-pub extern "C" fn ffi_piece_mut<T>(self_: &mut ByColor<ByRole<T>>, piece: Piece) -> &mut T {
-    <ByColor<ByRole<T>>>::piece_mut(self_, piece)
-}
-#[no_mangle]
-pub extern "C" fn ffi_normalize<T: PartialOrd>(self_: &mut ByColor<T>) {
-    <ByColor<T>>::normalize(self_)
-}
-#[no_mangle]
-pub extern "C" fn ffi_is_symmetric<T: PartialEq>(self_: &ByColor<T>) -> bool {
-    <ByColor<T>>::is_symmetric(self_)
-}
-#[no_mangle]
-pub extern "C" fn ffi_copied<T: Copy>(self_: ByColor<&T>) -> ByColor<T> {
-    <ByColor<&T>>::copied(self_)
-}
-#[no_mangle]
-pub extern "C" fn ffi_cloned<T: Clone>(self_: ByColor<&T>) -> ByColor<T> {
-    <ByColor<&T>>::cloned(self_)
 }

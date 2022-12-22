@@ -1,34 +1,52 @@
+// This file is part of the shakmaty library.
+// Copyright (C) 2017-2022 Niklas Fiekas <niklas.fiekas@backscattering.de>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 use crate::position::Position;
-#[doc = " Counts legal move paths of a given length."]
-#[doc = ""]
-#[doc = " Shorter paths (due to mate or stalemate) are not counted."]
-#[doc = " Computing perft numbers is useful for comparing, testing and"]
-#[doc = " debugging move generation correctness and performance."]
-#[doc = ""]
-#[doc = " The method used here is simply recursively enumerating the entire tree of"]
-#[doc = " legal moves. While this is fine for testing there is much"]
-#[doc = " faster specialized software."]
-#[doc = ""]
-#[doc = " Warning: Computing perft numbers can take a long time, even at moderate"]
-#[doc = " depths. The simple recursive algorithm can also overflow the stack at"]
-#[doc = " high depths, but this will only come into consideration in the rare case"]
-#[doc = " that high depths are feasible at all."]
-#[doc = ""]
-#[doc = " # Examples"]
-#[doc = ""]
-#[doc = " ```"]
-#[doc = " use shakmaty::{Chess, perft};"]
-#[doc = ""]
-#[doc = " let pos = Chess::default();"]
-#[doc = " assert_eq!(perft(&pos, 1), 20);"]
-#[doc = " assert_eq!(perft(&pos, 2), 400);"]
-#[doc = " assert_eq!(perft(&pos, 3), 8902);"]
-#[doc = " ```"]
+
+/// Counts legal move paths of a given length.
+///
+/// Shorter paths (due to mate or stalemate) are not counted.
+/// Computing perft numbers is useful for comparing, testing and
+/// debugging move generation correctness and performance.
+///
+/// The method used here is simply recursively enumerating the entire tree of
+/// legal moves. While this is fine for testing there is much
+/// faster specialized software.
+///
+/// Warning: Computing perft numbers can take a long time, even at moderate
+/// depths. The simple recursive algorithm can also overflow the stack at
+/// high depths, but this will only come into consideration in the rare case
+/// that high depths are feasible at all.
+///
+/// # Examples
+///
+/// ```
+/// use shakmaty::{Chess, perft};
+///
+/// let pos = Chess::default();
+/// assert_eq!(perft(&pos, 1), 20);
+/// assert_eq!(perft(&pos, 2), 400);
+/// assert_eq!(perft(&pos, 3), 8902);
+/// ```
 pub fn perft<P: Position + Clone>(pos: &P, depth: u32) -> u64 {
     if depth < 1 {
         1
     } else {
         let moves = pos.legal_moves();
+
         if depth == 1 {
             moves.len() as u64
         } else {
@@ -43,10 +61,12 @@ pub fn perft<P: Position + Clone>(pos: &P, depth: u32) -> u64 {
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::position::Chess;
+
     #[test]
     fn test_perft() {
         let pos = Chess::default();

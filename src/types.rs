@@ -1,30 +1,50 @@
+// This file is part of the shakmaty library.
+// Copyright (C) 2017-2022 Niklas Fiekas <niklas.fiekas@backscattering.de>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+use core::{
+    fmt::{self, Write as _},
+    num,
+};
+
 use crate::{
     color::{ByColor, Color},
     role::Role,
     square::{File, Square},
     util::overflow_error,
 };
-use core::{
-    fmt::{self, Write as _},
-    num,
-};
-#[doc = " A piece with [`Color`] and [`Role`]."]
+
+/// A piece with [`Color`] and [`Role`].
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-#[repr(C)]
 pub struct Piece {
     pub color: Color,
     pub role: Role,
 }
+
 impl Piece {
     pub fn char(self) -> char {
         self.color.fold_wb(self.role.upper_char(), self.role.char())
     }
+
     pub fn from_char(ch: char) -> Option<Piece> {
         Role::from_char(ch).map(|role| role.of(Color::from_white(32 & ch as u8 == 0)))
     }
 }
-#[doc = " Information about a move."]
+
+/// Information about a move.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 #[repr(align(4))]
 pub enum Move {
@@ -48,8 +68,9 @@ pub enum Move {
         to: Square,
     },
 }
+
 impl Move {
-    #[doc = " Gets the role of the moved piece."]
+    /// Gets the role of the moved piece.
     pub const fn role(&self) -> Role {
         match *self {
             Move::Normal { role, .. } | Move::Put { role, .. } => role,
@@ -57,7 +78,8 @@ impl Move {
             Move::Castle { .. } => Role::King,
         }
     }
-    #[doc = " Gets the origin square or `None` for drops."]
+
+    /// Gets the origin square or `None` for drops.
     pub const fn from(&self) -> Option<Square> {
         match *self {
             Move::Normal { from, .. } | Move::EnPassant { from, .. } => Some(from),
@@ -65,15 +87,17 @@ impl Move {
             Move::Put { .. } => None,
         }
     }
-    #[doc = " Gets the target square. For castling moves this is the corresponding"]
-    #[doc = " rook square."]
+
+    /// Gets the target square. For castling moves this is the corresponding
+    /// rook square.
     pub const fn to(&self) -> Square {
         match *self {
             Move::Normal { to, .. } | Move::EnPassant { to, .. } | Move::Put { to, .. } => to,
             Move::Castle { rook, .. } => rook,
         }
     }
-    #[doc = " Gets the role of the captured piece or `None`."]
+
+    /// Gets the role of the captured piece or `None`.
     pub const fn capture(&self) -> Option<Role> {
         match *self {
             Move::Normal { capture, .. } => capture,
@@ -81,7 +105,8 @@ impl Move {
             _ => None,
         }
     }
-    #[doc = " Checks if the move is a capture."]
+
+    /// Checks if the move is a capture.
     pub const fn is_capture(&self) -> bool {
         matches!(
             *self,
@@ -91,11 +116,13 @@ impl Move {
             } | Move::EnPassant { .. }
         )
     }
-    #[doc = " Checks if the move is en passant."]
+
+    /// Checks if the move is en passant.
     pub const fn is_en_passant(&self) -> bool {
         matches!(*self, Move::EnPassant { .. })
     }
-    #[doc = " Checks if the move zeros the half-move clock."]
+
+    /// Checks if the move zeros the half-move clock.
     pub const fn is_zeroing(&self) -> bool {
         matches!(
             *self,
@@ -112,7 +139,8 @@ impl Move {
                 }
         )
     }
-    #[doc = " Gets the castling side."]
+
+    /// Gets the castling side.
     pub fn castling_side(&self) -> Option<CastlingSide> {
         match *self {
             Move::Castle { king, rook } if king < rook => Some(CastlingSide::KingSide),
@@ -120,18 +148,21 @@ impl Move {
             _ => None,
         }
     }
-    #[doc = " Checks if the move is a castling move."]
+
+    /// Checks if the move is a castling move.
     pub const fn is_castle(&self) -> bool {
         matches!(*self, Move::Castle { .. })
     }
-    #[doc = " Gets the promotion role."]
+
+    /// Gets the promotion role.
     pub const fn promotion(&self) -> Option<Role> {
         match *self {
             Move::Normal { promotion, .. } => promotion,
             _ => None,
         }
     }
-    #[doc = " Checks if the move is a promotion."]
+
+    /// Checks if the move is a promotion.
     pub const fn is_promotion(&self) -> bool {
         matches!(
             *self,
@@ -142,6 +173,7 @@ impl Move {
         )
     }
 }
+
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
@@ -155,6 +187,7 @@ impl fmt::Display for Move {
                 if role != Role::Pawn {
                     f.write_char(role.upper_char())?;
                 }
+
                 write!(
                     f,
                     "{}{}{}",
@@ -162,9 +195,11 @@ impl fmt::Display for Move {
                     if capture.is_some() { 'x' } else { '-' },
                     to
                 )?;
+
                 if let Some(p) = promotion {
                     write!(f, "={}", p.upper_char())?;
                 }
+
                 Ok(())
             }
             Move::EnPassant { from, to, .. } => write!(f, "{from}x{to}"),
@@ -178,13 +213,14 @@ impl fmt::Display for Move {
         }
     }
 }
-#[doc = " `KingSide` (O-O) or `QueenSide` (O-O-O)."]
+
+/// `KingSide` (O-O) or `QueenSide` (O-O-O).
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-#[repr(C)]
 pub enum CastlingSide {
     KingSide = 0,
     QueenSide = 1,
 }
+
 impl CastlingSide {
     pub const fn is_queen_side(self) -> bool {
         match self {
@@ -192,9 +228,11 @@ impl CastlingSide {
             CastlingSide::QueenSide => true,
         }
     }
+
     pub const fn is_king_side(self) -> bool {
         !self.is_queen_side()
     }
+
     pub const fn from_queen_side(queen_side: bool) -> CastlingSide {
         if queen_side {
             CastlingSide::QueenSide
@@ -202,6 +240,7 @@ impl CastlingSide {
             CastlingSide::KingSide
         }
     }
+
     pub const fn from_king_side(king_side: bool) -> CastlingSide {
         if king_side {
             CastlingSide::KingSide
@@ -209,34 +248,40 @@ impl CastlingSide {
             CastlingSide::QueenSide
         }
     }
+
     pub const fn king_to_file(self) -> File {
         match self {
             CastlingSide::KingSide => File::G,
             CastlingSide::QueenSide => File::C,
         }
     }
+
     pub const fn rook_to_file(self) -> File {
         match self {
             CastlingSide::KingSide => File::F,
             CastlingSide::QueenSide => File::D,
         }
     }
+
     pub fn king_to(self, color: Color) -> Square {
         Square::from_coords(self.king_to_file(), color.backrank())
     }
+
     pub fn rook_to(self, color: Color) -> Square {
         Square::from_coords(self.rook_to_file(), color.backrank())
     }
-    #[doc = " `KingSide` and `QueenSide`, in this order."]
+
+    /// `KingSide` and `QueenSide`, in this order.
     pub const ALL: [CastlingSide; 2] = [CastlingSide::KingSide, CastlingSide::QueenSide];
 }
-#[doc = " `Standard` or `Chess960`."]
+
+/// `Standard` or `Chess960`.
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-#[repr(C)]
 pub enum CastlingMode {
     Standard,
     Chess960,
 }
+
 impl CastlingMode {
     pub const fn from_standard(standard: bool) -> CastlingMode {
         if standard {
@@ -245,6 +290,7 @@ impl CastlingMode {
             CastlingMode::Chess960
         }
     }
+
     pub const fn from_chess960(chess960: bool) -> CastlingMode {
         if chess960 {
             CastlingMode::Chess960
@@ -252,33 +298,38 @@ impl CastlingMode {
             CastlingMode::Standard
         }
     }
+
     pub const fn is_standard(self) -> bool {
         matches!(self, CastlingMode::Standard)
     }
+
     pub const fn is_chess960(self) -> bool {
         matches!(self, CastlingMode::Chess960)
     }
 }
-#[doc = " When to include the en passant square."]
+
+/// When to include the en passant square.
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-#[repr(C)]
 pub enum EnPassantMode {
-    #[doc = " Only if there is a fully legal en passant move."]
+    /// Only if there is a fully legal en passant move.
     Legal,
-    #[doc = " Only when a pawn has been advanced by two steps and there is an"]
-    #[doc = " enemy pawn next to it."]
-    #[doc = ""]
-    #[doc = " Follows the X-FEN specification."]
+    /// Only when a pawn has been advanced by two steps and there is an
+    /// enemy pawn next to it.
+    ///
+    /// Follows the X-FEN specification.
     PseudoLegal,
-    #[doc = " Whenever a pawn has been advanced by two steps."]
-    #[doc = ""]
-    #[doc = " Follows the FEN specification."]
+    /// Whenever a pawn has been advanced by two steps.
+    ///
+    /// Follows the FEN specification.
     Always,
 }
+
 #[cfg(test)]
 mod tests {
-    use super::*;
     use core::mem;
+
+    use super::*;
+
     #[test]
     fn test_role_order() {
         assert!(Role::Pawn < Role::Knight);
@@ -287,121 +338,96 @@ mod tests {
         assert!(Role::Rook < Role::Queen);
         assert!(Role::Queen < Role::King);
     }
+
     #[test]
     fn test_size() {
         assert!(mem::size_of::<Move>() <= 8);
     }
 }
-#[doc = " The number of checks the respective side needs to give in order to win"]
-#[doc = " (in a game of Three-Check)."]
-#[doc = ""]
-#[doc = " # Examples"]
-#[doc = ""]
-#[doc = " ```"]
-#[doc = " use shakmaty::{ByColor, RemainingChecks};"]
-#[doc = ""]
-#[doc = " let mut remaining_checks = ByColor::<RemainingChecks>::default();"]
-#[doc = " assert_eq!(remaining_checks.white, RemainingChecks::new(3));"]
-#[doc = " assert_eq!(remaining_checks.black, RemainingChecks::new(3));"]
-#[doc = ""]
-#[doc = " for _ in 0..5 {"]
-#[doc = "     remaining_checks.white = remaining_checks.white.saturating_sub(1);"]
-#[doc = " }"]
-#[doc = ""]
-#[doc = " assert!(remaining_checks.white.is_zero());"]
-#[doc = " ```"]
+
+/// The number of checks the respective side needs to give in order to win
+/// (in a game of Three-Check).
+///
+/// # Examples
+///
+/// ```
+/// use shakmaty::{ByColor, RemainingChecks};
+///
+/// let mut remaining_checks = ByColor::<RemainingChecks>::default();
+/// assert_eq!(remaining_checks.white, RemainingChecks::new(3));
+/// assert_eq!(remaining_checks.black, RemainingChecks::new(3));
+///
+/// for _ in 0..5 {
+///     remaining_checks.white = remaining_checks.white.saturating_sub(1);
+/// }
+///
+/// assert!(remaining_checks.white.is_zero());
+/// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Hash)]
-#[repr(C)]
 pub struct RemainingChecks(u32);
+
 impl Default for RemainingChecks {
     fn default() -> RemainingChecks {
         RemainingChecks(3)
     }
 }
+
 impl RemainingChecks {
-    #[doc = " Constructs a new [`RemainingChecks`] value."]
-    #[doc = ""]
-    #[doc = " # Panics"]
-    #[doc = ""]
-    #[doc = " Panics if `n > 3`."]
+    /// Constructs a new [`RemainingChecks`] value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `n > 3`.
     pub const fn new(n: u32) -> RemainingChecks {
         assert!(n <= 3);
         RemainingChecks(n)
     }
+
     pub const fn is_zero(self) -> bool {
         self.0 == 0
     }
+
     #[must_use]
     pub const fn saturating_sub(self, n: u32) -> RemainingChecks {
         RemainingChecks(self.0.saturating_sub(n))
     }
 }
-macro_rules ! int_from_remaining_checks_impl { ($ ($ t : ty) +) => { $ (impl From < RemainingChecks > for $ t { # [inline] fn from (RemainingChecks (checks) : RemainingChecks) -> $ t { checks as $ t } }) + } }
+
+macro_rules! int_from_remaining_checks_impl {
+    ($($t:ty)+) => {
+        $(impl From<RemainingChecks> for $t {
+            #[inline]
+            fn from(RemainingChecks(checks): RemainingChecks) -> $t {
+                checks as $t
+            }
+        })+
+    }
+}
+
 int_from_remaining_checks_impl! { u8 i8 u16 i16 u32 i32 u64 i64 usize isize }
-macro_rules ! try_remaining_checks_from_int_impl { ($ ($ t : ty) +) => { $ (impl core :: convert :: TryFrom <$ t > for RemainingChecks { type Error = num :: TryFromIntError ; # [inline] fn try_from (value : $ t) -> Result < RemainingChecks , Self :: Error > { let n = u32 :: try_from (value) ?; if n <= 3 { Ok (RemainingChecks :: new (n)) } else { Err (overflow_error ()) } } }) + } }
+
+macro_rules! try_remaining_checks_from_int_impl {
+    ($($t:ty)+) => {
+        $(impl core::convert::TryFrom<$t> for RemainingChecks {
+            type Error = num::TryFromIntError;
+
+            #[inline]
+            fn try_from(value: $t) -> Result<RemainingChecks, Self::Error> {
+                let n = u32::try_from(value)?;
+                if n <= 3 {
+                    Ok(RemainingChecks::new(n))
+                } else {
+                    Err(overflow_error())
+                }
+            }
+        })+
+    }
+}
+
 try_remaining_checks_from_int_impl! { u8 i8 u16 i16 u32 i32 u64 i64 usize isize }
+
 impl fmt::Display for ByColor<RemainingChecks> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}+{}", self.white.0, self.black.0)
     }
-}
-#[no_mangle]
-pub extern "C" fn ffi_piece_char(self_: Piece) -> char {
-    <Piece>::char(self_)
-}
-#[no_mangle]
-pub extern "C" fn ffi_piece_from_char(ch: char) -> Option<Piece> {
-    <Piece>::from_char(ch)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_castlingside_is_queen_side(self_: CastlingSide) -> bool {
-    <CastlingSide>::is_queen_side(self_)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_castlingside_is_king_side(self_: CastlingSide) -> bool {
-    <CastlingSide>::is_king_side(self_)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_castlingside_from_queen_side(queen_side: bool) -> CastlingSide {
-    <CastlingSide>::from_queen_side(queen_side)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_castlingside_from_king_side(king_side: bool) -> CastlingSide {
-    <CastlingSide>::from_king_side(king_side)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_castlingside_king_to_file(self_: CastlingSide) -> File {
-    <CastlingSide>::king_to_file(self_)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_castlingside_rook_to_file(self_: CastlingSide) -> File {
-    <CastlingSide>::rook_to_file(self_)
-}
-#[no_mangle]
-pub extern "C" fn ffi_castlingside_king_to(self_: CastlingSide, color: Color) -> Square {
-    <CastlingSide>::king_to(self_, color)
-}
-#[no_mangle]
-pub extern "C" fn ffi_castlingside_rook_to(self_: CastlingSide, color: Color) -> Square {
-    <CastlingSide>::rook_to(self_, color)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_castlingmode_from_standard(standard: bool) -> CastlingMode {
-    <CastlingMode>::from_standard(standard)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_castlingmode_from_chess960(chess960: bool) -> CastlingMode {
-    <CastlingMode>::from_chess960(chess960)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_castlingmode_is_standard(self_: CastlingMode) -> bool {
-    <CastlingMode>::is_standard(self_)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_castlingmode_is_chess960(self_: CastlingMode) -> bool {
-    <CastlingMode>::is_chess960(self_)
-}
-#[no_mangle]
-pub const extern "C" fn ffi_remainingchecks_is_zero(self_: RemainingChecks) -> bool {
-    <RemainingChecks>::is_zero(self_)
 }
