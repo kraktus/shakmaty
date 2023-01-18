@@ -24,6 +24,8 @@ use core::{
     str,
 };
 
+use crate::Foo;
+
 use crate::util::overflow_error;
 
 macro_rules! from_repr_u8_impl {
