@@ -94,6 +94,7 @@ extern crate alloc;
 extern crate std;
 
 mod color;
+mod ffi;
 mod magics;
 mod movelist;
 mod perft;
