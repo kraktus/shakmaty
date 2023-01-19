@@ -143,13 +143,3 @@ impl nohash_hasher::IsEnabled for Role {}
 
 #[cfg(feature = "nohash-hasher")]
 impl nohash_hasher::IsEnabled for Color {}
-
-
-/// A square of the chessboard.
-#[allow(missing_docs)]
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-#[repr(u8)]
-pub enum Foo {
-    A,
-    B
-}
