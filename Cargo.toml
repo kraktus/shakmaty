@@ -34,6 +34,9 @@ arrayvec = { version = "0.7", default-features = false }
 nohash-hasher = { version = "0.2", optional = true }
 cxx = {git = "https://github.com/kraktus/cxx", branch = "rust_char"}
 
+[build-dependencies]
+shakmaty = "0.23"
+
 [dev-dependencies]
 iai = "0.1"
 

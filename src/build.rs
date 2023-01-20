@@ -19,15 +19,10 @@
 
 use std::{env, fmt::LowerHex, fs::File, io, io::Write, path::Path};
 
-mod bitboard;
-mod color;
 mod magics;
-mod role;
-mod square;
-mod types;
-mod util;
 
-use crate::{bitboard::Bitboard, magics::Magic, square::Square};
+use crate::magics::Magic;
+use shakmaty::{Bitboard, Square};
 
 const ROOK_DELTAS: [i32; 4] = [8, 1, -8, -1];
 const BISHOP_DELTAS: [i32; 4] = [9, 7, -9, -7];
