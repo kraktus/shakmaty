@@ -82,7 +82,7 @@
 
 #![no_std]
 #![doc(html_root_url = "https://docs.rs/shakmaty/0.23.0")]
-#![forbid(unsafe_op_in_unsafe_fn)]
+// #![forbid(unsafe_op_in_unsafe_fn)] triggered by `cxx`
 #![warn(missing_debug_implementations)]
 #![cfg_attr(feature = "step", feature(step_trait))]
 #![cfg_attr(docs_rs, feature(doc_auto_cfg))]

@@ -21,7 +21,6 @@ use std::{env, fmt::LowerHex, fs::File, io, io::Write, path::Path};
 
 mod bitboard;
 mod color;
-mod ffi;
 mod magics;
 mod role;
 mod square;
