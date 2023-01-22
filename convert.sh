@@ -3,7 +3,6 @@ rm src/ffi.rs && \
 git restore src/* && \
 cargo extern-fn -vvv \
         -i board.rs \
-        -i build.rs \
         -i fen.rs \
         -i magics.rs \
         -i movelist.rs \
