@@ -1,6 +1,6 @@
 touch src/ffi.rs && \
 rm src/ffi.rs && \
-git restore . && \
+git restore src/* && \
 cargo extern-fn -vvv \
         -i attacks.rs \
         -i board.rs \
@@ -15,4 +15,5 @@ cargo extern-fn -vvv \
         -i util.rs \
         -i variant.rs \
         -i zobrist.rs && \
-python3 t.py
+python3 t.py && \
+cargo check
