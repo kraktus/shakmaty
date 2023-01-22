@@ -2,7 +2,6 @@ touch src/ffi.rs && \
 rm src/ffi.rs && \
 git restore src/* && \
 cargo extern-fn -vvv \
-        -i attacks.rs \
         -i board.rs \
         -i build.rs \
         -i fen.rs \
