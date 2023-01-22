@@ -19,6 +19,67 @@ from collections import deque
 from pathlib import Path
 from typing import Optional, List, Union, Tuple
 
+
+
+###########
+# Helpers #
+###########
+
+
+def decl_by_color(name: str, ty: str) -> str:
+   return f"""
+    #[derive(Copy, Clone, Default, Eq, PartialEq, Debug, Hash)]
+    pub struct ByColor{name}Ffi {{
+        pub black: {ty},
+        pub white: {ty},
+    }}
+    """
+
+def decl_by_role(name: str, ty: str) -> str:
+    return f"""
+    #[derive(Copy, Clone, Default, Eq, PartialEq, Debug, Hash)]
+    pub struct ByRole{name}Ffi {{
+        pub pawn: {ty},
+        pub knight: {ty},
+        pub bishop: {ty},
+        pub rook: {ty},
+        pub queen: {ty},
+        pub king: {ty},
+    }}
+    """
+
+def conversion_bc(x: str, y: str) -> str:
+    return f"""impl From<ByColor{x}> for ByColor{y} {{
+    fn from(x: ByColor{x}) -> Self {{
+        Self {{
+            black: x.black.into(),
+            white: x.white.into(),
+        }}
+    }}
+}}
+"""
+
+def conversion_br(x: str, y: str) -> str:
+    return f"""impl From<ByRole{x}> for ByRole{y} {{
+    fn from(x: ByRole{x}) -> Self {{
+        Self {{
+            pawn: x.pawn.into(),
+            knight: x.knight.into(),
+            bishop: x.bishop.into(),
+            rook: x.rook.into(),
+            queen: x.queen.into(),
+            king: x.king.into(),
+        }}
+    }}
+}}
+"""
+
+def conversion_back_and_forth_bc(x: str, y: str) -> str:
+    return conversion_bc(x,y) + conversion_bc(y,x)
+
+def conversion_back_and_forth_br(x: str, y: str) -> str:
+    return conversion_br(x,y) + conversion_br(y,x)
+
 #############
 # Constants #
 #############
@@ -39,6 +100,26 @@ impl fmt::Debug for SquareFfi {
 }
 """
 
+BY_COLOR_CONVERSIONS = f"""
+{conversion_back_and_forth_bc("<crate::Bitboard>", "BitboardFfi")}
+{conversion_back_and_forth_bc("<ByRole<u8>>", "ByRoleU8Ffi")}
+"""
+
+BY_COLOR_DEF = f"""
+    {decl_by_color("Bitboard", "BitboardFfi")}
+    {decl_by_color("ByRoleU8", "ByRoleU8Ffi")}
+"""
+
+BY_ROLE_CONVERSIONS = f"""
+{conversion_back_and_forth_br("<u8>", "U8Ffi")}
+{conversion_back_and_forth_br("<crate::Bitboard>", "BitboardFfi")}
+"""
+
+BY_ROLE_DEF = f"""
+    {decl_by_role("U8", "u8")}
+    {decl_by_role("Bitboard", "BitboardFfi")}
+"""
+
 ########
 # Logs #
 ########
@@ -54,64 +135,10 @@ def change_file_in_memory(file_name: str, fn):
     with open(f"src/{file_name}.rs", "w") as f:
         f.write(fn(src))
 
-def conversion_bc(x: str, y: str) -> str:
-    return f"""impl From<{x}> for {y} {{
-    fn from(x: {x}) -> Self {{
-        Self {{
-            black: x.black.into(),
-            white: x.white.into(),
-        }}
-    }}
-}}
-"""
-
-def conversion_br(x: str, y: str) -> str:
-    return f"""impl From<{x}> for {y} {{
-    fn from(x: {x}) -> Self {{
-        Self {{
-            pawn: x.pawn.into(),
-            knight: x.knight.into(),
-            bishop: x.bishop.into(),
-            rook: x.rook.into(),
-            queen: x.queen.into(),
-            king: x.king.into(),
-        }}
-    }}
-}}
-"""
-
-def conversion_back_and_forth_bc(x: str, y: str) -> str:
-    return conversion_bc(x,y) + conversion_bc(y,x)
-
-def conversion_back_and_forth_br(x: str, y: str) -> str:
-    return conversion_br(x,y) + conversion_br(y,x)
-
-def decl_by_color(t: str) -> str:
-   return fr"""
-    #[derive(Copy, Clone, Default, Eq, PartialEq, Debug, Hash)]
-    pub struct ByColor{t}Ffi {{
-        pub black: {t}Ffi,
-        pub white: {t}Ffi,
-    }}
-    """
-
-def decl_by_role(t: str, is_primitive: bool) -> str:
-    suffix = "Ffi" if not is_primitive else ""
-    return fr"""
-    #[derive(Copy, Clone, Default, Eq, PartialEq, Debug, Hash)]
-    pub struct ByRole{t}Ffi {{
-        pub pawn: {t}{suffix},
-        pub knight: {t}{suffix},
-        pub bishop: {t}{suffix},
-        pub rook: {t}{suffix},
-        pub queen: {t}{suffix},
-        pub king: {t}{suffix},
-    }}
-    """
-
-
 def monomorphise_bc(l: List[str]):
     for ty in l:
+        while t[-3:] == "Ffi":
+            t = t[:-3]
         original = f"ByColor<crate::{ty}>"
         ffi = f"ByColor{ty}Ffi"
         insert_code("ffi", 4, decl_by_color(ty))
@@ -149,14 +176,26 @@ def insert_code(file_name: str, line_nb: int, string: str):
         return "".join(src)
     change_file_in_memory(file_name, inner)
 
+def replace_ffi(x: str, by: str):
+    def replace(src: List[str]) -> str:
+            file = "".join(src)
+            return file.replace(x, by)
+    change_file_in_memory("ffi", replace)
+
 
 def main() -> None:
     insert_code("lib", 97, "mod ffi;")
     insert_code("bitboard", 1235, BB_DEBUG)
     insert_code("square", 968, SQUARE_DEBUG)
-    monomorphise_bc(["Bitboard"])
-    monomorphise_br(["Bitboard"])
-    monomorphise_br_primitive(["u8"])
+    insert_code("ffi", 4, BY_COLOR_DEF)
+    insert_code("ffi", 4, BY_ROLE_DEF)
+    insert_code("role", 368, BY_ROLE_CONVERSIONS)
+    insert_code("color", 414, BY_COLOR_CONVERSIONS)
+    replace_ffi("ByColor<BitboardFfi>", "ByColorBitboardFfi")
+    replace_ffi("ByColor<ByRole<u8>>", "ByColorByRoleU8Ffi")
+    replace_ffi("ByRole<u8>", "ByRoleU8Ffi")
+    replace_ffi("ByRole<BitboardFfi>", "ByRoleBitboardFfi")
+
 
 ########
 # Main #
