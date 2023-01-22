@@ -112,7 +112,7 @@ def decl_by_role(t: str, is_primitive: bool) -> str:
 
 def monomorphise_bc(l: List[str]):
     for ty in l:
-        original = f"ByColor<{ty}>"
+        original = f"ByColor<crate::{ty}>"
         ffi = f"ByColor{ty}Ffi"
         insert_code("ffi", 4, decl_by_color(ty))
         insert_code("color", 414, conversion_back_and_forth_bc(original, ffi))
@@ -123,7 +123,7 @@ def monomorphise_bc(l: List[str]):
 
 def monomorphise_br(l: List[str]):
     for ty in l:
-        original = f"ByRole<{ty}>"
+        original = f"ByRole<crate::{ty}>"
         ffi = f"ByRole{ty}Ffi"
         insert_code("ffi", 4, decl_by_role(ty, False))
         insert_code("role", 368, conversion_back_and_forth_br(original, ffi))
@@ -137,7 +137,7 @@ def monomorphise_br_primitive(l: List[str]):
         original = f"ByRole<{ty}>"
         ffi = f"ByRole{ty}Ffi"
         insert_code("ffi", 4, decl_by_role(ty, True))
-        insert_code("role", 414, conversion_back_and_forth_br(original, ffi))
+        insert_code("role", 368, conversion_back_and_forth_br(original, ffi))
         def replace(src: List[str]) -> str:
             file = "".join(src)
             return file.replace(f"ByRole<{ty}>", ffi)
