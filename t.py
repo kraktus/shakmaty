@@ -47,6 +47,32 @@ impl fmt::Debug for SquareFfi {
 # Classes #
 ###########
 
+def conversion_bc(x: str, y: str) -> str:
+    f"""impl From<{x}> for {y} {{
+    fn from(x: {x}) -> Self {{
+        Self {{
+            black: x.black.into(),
+            white: x.white.into(),
+        }}
+    }}
+}}"""
+
+def conversion_back_and_forth_bc(x: str, y: str) -> str:
+    conversion_bc(x,y) + conversion_bc(y,x)
+
+def decl_by_color(t: str) -> str:
+   decl = fr"""#[derive(Copy, Clone, Default, Eq, PartialEq, Debug, Hash)]
+    #[repr(C)]
+    pub struct ByColor{t}Ffi {{
+        pub black: {t}Ffi,
+        pub white: {t}Ffi,
+    }}"""
+
+def monomorphise_bc(l: List[str]):
+    for ty in l:
+        insert_code("ffi", 4, decl_by_color(ty))
+        insert_code("color", 414, conversion_back_and_forth_bc(f"ByColor{t}Ffi", f"ByColor<{t}>"))
+
 def insert_code(file_name: str, line_nb: int, string: str):
     with open(f"src/{file_name}.rs", "r") as f:
     	src = f.readlines()
