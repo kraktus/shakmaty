@@ -126,7 +126,7 @@ def monomorphise_br(l: List[str]):
         original = f"ByRole<{ty}>"
         ffi = f"ByRole{ty}Ffi"
         insert_code("ffi", 4, decl_by_role(ty, False))
-        insert_code("role", 414, conversion_back_and_forth_br(original, ffi))
+        insert_code("role", 368, conversion_back_and_forth_br(original, ffi))
         def replace(src: List[str]) -> str:
             file = "".join(src)
             return file.replace(f"ByRole<{ty}Ffi>", ffi)
