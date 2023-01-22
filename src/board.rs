@@ -445,6 +445,7 @@ impl IntoIterator for Board {
 }
 
 /// Iterator over the pieces of a [`Board`].
+/// extern_fn:skip
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct IntoIter {
     inner: Board,

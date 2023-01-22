@@ -1058,6 +1058,7 @@ impl IntoIterator for Bitboard {
 }
 
 /// Iterator over the squares of a [`Bitboard`].
+/// extern_fn:skip
 #[derive(Debug, Clone)]
 pub struct IntoIter(Bitboard);
 
