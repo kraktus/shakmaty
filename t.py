@@ -28,7 +28,7 @@ from typing import Optional, List, Union, Tuple
 
 def decl_by_color(name: str, ty: str) -> str:
    return f"""
-    #[derive(Copy, Clone, Default, Eq, PartialEq, Debug, Hash)]
+    #[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
     pub struct ByColor{name}Ffi {{
         pub black: {ty},
         pub white: {ty},
@@ -37,7 +37,7 @@ def decl_by_color(name: str, ty: str) -> str:
 
 def decl_by_role(name: str, ty: str) -> str:
     return f"""
-    #[derive(Copy, Clone, Default, Eq, PartialEq, Debug, Hash)]
+    #[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
     pub struct ByRole{name}Ffi {{
         pub pawn: {ty},
         pub knight: {ty},
@@ -185,7 +185,7 @@ def replace_ffi(x: str, by: str):
 
 def main() -> None:
     insert_code("lib", 97, "mod ffi;")
-    insert_code("bitboard", 1235, BB_DEBUG)
+    insert_code("bitboard", 1263, BB_DEBUG)
     insert_code("square", 968, SQUARE_DEBUG)
     insert_code("ffi", 4, BY_COLOR_DEF)
     insert_code("ffi", 4, BY_ROLE_DEF)
