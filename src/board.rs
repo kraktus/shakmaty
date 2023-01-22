@@ -284,7 +284,8 @@ impl Board {
     }
 
     #[inline]
-    pub fn set_piece_at(&mut self, sq: Square, Piece { color, role }: Piece) {
+    pub fn set_piece_at(&mut self, sq: Square, piece: Piece) {
+        let Piece { color, role } = piece;
         self.discard_piece_at(sq);
         self.by_role.get_mut(role).toggle(sq);
         self.by_color.get_mut(color).toggle(sq);
