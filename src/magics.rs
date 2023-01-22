@@ -1,6 +1,8 @@
 // Fixed shift white magics found by Volker Annuss.
 // From: http://www.talkchess.com/forum/viewtopic.php?p=727500&t=64790
 
+// only used internally
+/// extern_fn:skip
 pub struct Magic {
     pub mask: u64,
     pub factor: u64,
