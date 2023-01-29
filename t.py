@@ -103,11 +103,17 @@ impl fmt::Debug for SquareFfi {
 BY_COLOR_CONVERSIONS = f"""
 {conversion_back_and_forth_bc("<crate::Bitboard>", "BitboardFfi")}
 {conversion_back_and_forth_bc("<ByRole<u8>>", "ByRoleU8Ffi")}
+{conversion_back_and_forth_bc("<RemainingChecks>", "RemainingChecksFfi")}
+{conversion_back_and_forth_bc("<[OptionSquareFfi; 2]>", "Array2OptionSquare")}
+{conversion_back_and_forth_bc("<[BitboardFfi; 2]>", "Array2Bitboard")}
 """
 
 BY_COLOR_DEF = f"""
     {decl_by_color("Bitboard", "BitboardFfi")}
     {decl_by_color("ByRoleU8", "ByRoleU8Ffi")}
+    {decl_by_color("RemainingChecks", "RemainingChecksFfi")}
+    {decl_by_color("Array2OptionSquare", "[OptionSquareFfi; 2]")}
+    {decl_by_color("Array2Bitboard", "[BitboardFfi; 2]")}
 """
 
 BY_ROLE_CONVERSIONS = f"""
@@ -191,8 +197,13 @@ def main() -> None:
     insert_code("ffi", 4, BY_ROLE_DEF)
     insert_code("role", 368, BY_ROLE_CONVERSIONS)
     insert_code("color", 414, BY_COLOR_CONVERSIONS)
+    # By Color
     replace_ffi("ByColor<BitboardFfi>", "ByColorBitboardFfi")
     replace_ffi("ByColor<ByRole<u8>>", "ByColorByRoleU8Ffi")
+    replace_ffi("ByColor<RemainingChecksFfi>", "ByColorRemainingChecksFfi")
+    replace_ffi("ByColor<[OptionSquareFfi; 2]>", "ByColorArray2OptionSquareFfi")
+    replace_ffi("ByColor<[BitboardFfi; 2]>", "ByColorArray2BitboardFfi")
+    # By Role
     replace_ffi("ByRole<u8>", "ByRoleU8Ffi")
     replace_ffi("ByRole<BitboardFfi>", "ByRoleBitboardFfi")
 
