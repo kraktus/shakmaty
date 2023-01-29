@@ -26,9 +26,9 @@ from typing import Optional, List, Union, Tuple
 ###########
 
 
-def decl_by_color(name: str, ty: str) -> str:
-   return f"""
-    #[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
+def decl_by_color(name: str, ty: str, derive: str = "#[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]") -> str:
+    return f"""
+    {derive}
     pub struct ByColor{name}Ffi {{
         pub black: {ty},
         pub white: {ty},
@@ -103,18 +103,19 @@ impl fmt::Debug for SquareFfi {
 BY_COLOR_CONVERSIONS = f"""
 {conversion_back_and_forth_bc("<crate::Bitboard>", "BitboardFfi")}
 {conversion_back_and_forth_bc("<ByRole<u8>>", "ByRoleU8Ffi")}
-{conversion_back_and_forth_bc("<RemainingChecks>", "RemainingChecksFfi")}
-{conversion_back_and_forth_bc("<[OptionSquareFfi; 2]>", "Array2OptionSquare")}
-{conversion_back_and_forth_bc("<[BitboardFfi; 2]>", "Array2Bitboard")}
+{conversion_back_and_forth_bc("<crate::RemainingChecks>", "RemainingChecksFfi")}
+{conversion_back_and_forth_bc("<[OptionSquareFfi; 2]>", "Array2OptionSquareFfi")}
+{conversion_back_and_forth_bc("<[BitboardFfi; 2]>", "Array2BitboardFfi")}
 """
 
 BY_COLOR_DEF = f"""
     {decl_by_color("Bitboard", "BitboardFfi")}
     {decl_by_color("ByRoleU8", "ByRoleU8Ffi")}
-    {decl_by_color("RemainingChecks", "RemainingChecksFfi")}
-    {decl_by_color("Array2OptionSquare", "[OptionSquareFfi; 2]")}
+    {decl_by_color("RemainingChecks", "RemainingChecksFfi", "#[derive(Copy, Clone, Eq, PartialEq, Hash)]")}
+    // should be `Copy`, etc... but not propagated by `cargo-extern-fn`
+    {decl_by_color("Array2OptionSquare", "[OptionSquareFfi; 2]", "")}
     {decl_by_color("Array2Bitboard", "[BitboardFfi; 2]")}
-"""
+""" 
 
 BY_ROLE_CONVERSIONS = f"""
 {conversion_back_and_forth_br("<u8>", "U8Ffi")}
