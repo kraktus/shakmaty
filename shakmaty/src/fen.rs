@@ -69,6 +69,7 @@ fn append_castling<W: AppendAscii>(
     f: &mut W,
     board: &Board,
     castling_rights: Bitboard,
+    force_shredder: bool,
 ) -> Result<(), W::Error> {
     let mut empty = true;
 
@@ -81,9 +82,15 @@ fn append_castling<W: AppendAscii>(
 
         for rook in (castling_rights & color.backrank()).into_iter().rev() {
             f.append_ascii(
-                if Some(rook) == candidates.first() && king.is_some_and(|k| rook < k) {
+                if !force_shredder
+                    && Some(rook) == candidates.first()
+                    && king.is_some_and(|k| rook < k)
+                {
                     color.fold_wb('Q', 'q')
-                } else if Some(rook) == candidates.last() && king.is_some_and(|k| k < rook) {
+                } else if !force_shredder
+                    && Some(rook) == candidates.last()
+                    && king.is_some_and(|k| k < rook)
+                {
                     color.fold_wb('K', 'k')
                 } else {
                     let file = rook.file();
@@ -127,6 +134,30 @@ fn append_epd<W: AppendAscii>(
     ep_square: Option<Square>,
     remaining_checks: &Option<ByColor<RemainingChecks>>,
 ) -> Result<(), W::Error> {
+    append_epd_shredder_opt(
+        f,
+        board,
+        promoted,
+        pockets,
+        turn,
+        castling_rights,
+        ep_square,
+        remaining_checks,
+        false,
+    )
+}
+
+fn append_epd_shredder_opt<W: AppendAscii>(
+    f: &mut W,
+    board: &Board,
+    promoted: Bitboard,
+    pockets: &Option<ByColor<ByRole<u8>>>,
+    turn: Color,
+    castling_rights: Bitboard,
+    ep_square: Option<Square>,
+    remaining_checks: &Option<ByColor<RemainingChecks>>,
+    force_shredder: bool,
+) -> Result<(), W::Error> {
     f.reserve(21);
     BoardFen { board, promoted }.append_to(f)?;
     if let Some(pockets) = pockets {
@@ -135,7 +166,7 @@ fn append_epd<W: AppendAscii>(
     f.append_ascii(' ')?;
     f.append_ascii(turn.char())?;
     f.append_ascii(' ')?;
-    append_castling(f, board, castling_rights)?;
+    append_castling(f, board, castling_rights, force_shredder)?;
     f.append_ascii(' ')?;
     match ep_square {
         Some(ep_square) => ep_square.append_to(f)?,
@@ -714,6 +745,35 @@ impl Fen {
     }
 
     #[cfg(feature = "alloc")]
+    fn _to_string_with_shredder(
+        &self,
+    ) -> Result<alloc::string::String, <alloc::string::String as AppendAscii>::Error> {
+        let mut s = alloc::string::String::new();
+        append_epd_shredder_opt(
+            &mut s,
+            &self.setup.board,
+            self.setup.promoted,
+            &self.setup.pockets,
+            self.setup.turn,
+            self.setup.castling_rights,
+            self.setup.ep_square,
+            &self.setup.remaining_checks,
+            true,
+        )?;
+        s.append_ascii(' ')?;
+        s.append_u32(self.setup.halfmoves)?;
+        s.append_ascii(' ')?;
+        s.append_u32(u32::from(self.setup.fullmoves))?;
+        Ok(s)
+    }
+
+    #[cfg(feature = "alloc")]
+    pub fn to_string_with_shredder(&self) -> alloc::string::String {
+        // TODO, can use into?
+        self._to_string_with_shredder().expect("infaillible")
+    }
+
+    #[cfg(feature = "alloc")]
     pub fn append_to_string(&self, s: &mut alloc::string::String) {
         let _ = self.append_to(s);
     }
@@ -1011,6 +1071,30 @@ mod tests {
             Epd::from_position(&pos, EnPassantMode::Legal).to_string(),
             "4k3/8/8/8/3Pp3/8/8/3KR3 b - -"
         );
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn test_shredder_fen() {
+        let tests = [
+            (
+                "rn2k1r1/ppp1pp1p/3p2p1/5bn1/P7/2N2B2/1PPPPP2/2BNK1RR w Gkq - 4 11",
+                "rn2k1r1/ppp1pp1p/3p2p1/5bn1/P7/2N2B2/1PPPPP2/2BNK1RR w Gga - 4 11",
+            ),
+            (
+                "rkbqrbnn/pppppppp/8/8/8/8/PPPPPPPP/RKBQRBNN w KQkq - 0 1",
+                "rkbqrbnn/pppppppp/8/8/8/8/PPPPPPPP/RKBQRBNN w EAea - 0 1",
+            ),
+            (
+                "3r1k1r/4pp2/8/8/8/8/8/4RKR1 w Gd - 1 1",
+                "3r1k1r/4pp2/8/8/8/8/8/4RRK1 b d - 2 1",
+            ),
+        ];
+
+        for (fen_str, shredder_fen) in tests {
+            let fen = fen_str.parse::<Fen>().expect("valid FEN");
+            assert_eq!(fen.to_string_with_shredder(), shredder_fen)
+        }
     }
 
     #[test]
