@@ -10,7 +10,8 @@ use bitflags::bitflags;
 use crate::{
     Bitboard, Board, ByColor, ByRole, Castles, CastlingMode, CastlingSide, Color,
     Color::{Black, White},
-    EnPassantMode, Move, MoveList, Piece, Rank, RemainingChecks, Role, Setup, Square, attacks,
+    EnPassantMode, Move, MoveList, Piece, PseudoMoveList, Rank, RemainingChecks, Role, Setup,
+    Square, attacks,
     bitboard::Direction,
     setup::EnPassant,
     zobrist::ZobristValue,
@@ -1074,6 +1075,45 @@ impl arbitrary::Arbitrary<'_> for Chess {
     }
 }
 
+fn chess_legal_or_pseudo_impl<const LEGAL: bool>(moves: &mut MoveList, this: &Chess) {
+    let king = this
+        .board()
+        .king_of(this.turn())
+        .expect("king in standard chess");
+
+    let has_ep = gen_en_passant(this.board(), this.turn(), this.ep_square, moves);
+
+    let checkers = this.checkers();
+    if checkers.is_empty() || !LEGAL {
+        let target = !this.us();
+        gen_non_king(this, target, moves);
+        gen_king_with_safety::<LEGAL, Chess>(this, king, target, moves);
+        gen_castling_moves(this, &this.castles, king, CastlingSide::KingSide, moves);
+        gen_castling_moves(this, &this.castles, king, CastlingSide::QueenSide, moves);
+    } else {
+        evasions(this, king, checkers, moves);
+    }
+
+    if LEGAL {
+        let blockers = slider_blockers(this.board(), this.them(), king);
+        if blockers.any() || has_ep {
+            moves.retain(|m| is_safe(this, king, *m, blockers));
+        }
+    }
+}
+
+pub trait PseudoLegal {
+    fn pseudo_legal_moves(&self) -> PseudoMoveList;
+}
+
+impl PseudoLegal for Chess {
+    fn pseudo_legal_moves(&self) -> PseudoMoveList {
+        let mut moves = MoveList::new();
+        chess_legal_or_pseudo_impl::<false>(&mut moves, self);
+        PseudoMoveList(moves)
+    }
+}
+
 impl Position for Chess {
     fn board(&self) -> &Board {
         &self.board
@@ -1126,42 +1166,7 @@ impl Position for Chess {
 
     fn legal_moves(&self) -> MoveList {
         let mut moves = MoveList::new();
-
-        let king = self
-            .board()
-            .king_of(self.turn())
-            .expect("king in standard chess");
-
-        let has_ep = gen_en_passant(self.board(), self.turn(), self.ep_square, &mut moves);
-
-        let checkers = self.checkers();
-        if checkers.is_empty() {
-            let target = !self.us();
-            gen_non_king(self, target, &mut moves);
-            gen_safe_king(self, king, target, &mut moves);
-            gen_castling_moves(
-                self,
-                &self.castles,
-                king,
-                CastlingSide::KingSide,
-                &mut moves,
-            );
-            gen_castling_moves(
-                self,
-                &self.castles,
-                king,
-                CastlingSide::QueenSide,
-                &mut moves,
-            );
-        } else {
-            evasions(self, king, checkers, &mut moves);
-        }
-
-        let blockers = slider_blockers(self.board(), self.them(), king);
-        if blockers.any() || has_ep {
-            moves.retain(|m| is_safe(self, king, *m, blockers));
-        }
-
+        chess_legal_or_pseudo_impl::<true>(&mut moves, self);
         moves
     }
 
@@ -3552,12 +3557,18 @@ fn gen_non_king<P: Position>(pos: &P, target: Bitboard, moves: &mut MoveList) {
     QueenTag::gen_moves(pos, target, moves);
 }
 
-fn gen_safe_king<P: Position>(pos: &P, king: Square, target: Bitboard, moves: &mut MoveList) {
+fn gen_king_with_safety<const SAFE: bool, P: Position>(
+    pos: &P,
+    king: Square,
+    target: Bitboard,
+    moves: &mut MoveList,
+) {
     (attacks::king_attacks(king) & target).for_each(|to| {
-        if pos
-            .board()
-            .attacks_to(to, !pos.turn(), pos.board().occupied())
-            .is_empty()
+        if !SAFE
+            || pos
+                .board()
+                .attacks_to(to, !pos.turn(), pos.board().occupied())
+                .is_empty()
         {
             moves.push(Move::Normal {
                 role: Role::King,
@@ -3568,6 +3579,10 @@ fn gen_safe_king<P: Position>(pos: &P, king: Square, target: Bitboard, moves: &m
             });
         }
     });
+}
+
+fn gen_safe_king<P: Position>(pos: &P, king: Square, target: Bitboard, moves: &mut MoveList) {
+    gen_king_with_safety::<true, P>(pos, king, target, moves)
 }
 
 fn evasions<P: Position>(pos: &P, king: Square, checkers: Bitboard, moves: &mut MoveList) {
@@ -3886,6 +3901,45 @@ mod tests {
             .expect("valid fen")
             .into_position::<T>(CastlingMode::Chess960)
             .expect("legal position")
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn test_pseudo_legal_moves() {
+        use alloc::string::ToString as _;
+        use alloc::vec;
+        use std::collections::HashSet;
+        use std::string::String;
+
+        let tests = [
+            ("8/2R1P3/8/2pp4/2k1r3/P7/8/1K6 w - - 1 55", 16, vec![]),
+            ("8/8/8/r2Pp2K/8/8/4k3/8 w - e6 0 1", 7, vec!["d5e6"]),
+            ("8/8/8/5k2/4Pp2/8/2B5/4K3 b - e3 0 1", 9, vec!["f4e3"]),
+            ("4r3/3k4/8/8/8/8/q5PP/1R1KR3 w Q - 2 2", 28, vec!["d1b1"]),
+            (
+                "rnbqkbnr/2pp1ppp/8/4p3/2BPP3/P1N2N2/PB3PPP/2RQ1RK1 b kq - 1 10",
+                33,
+                vec![],
+            ),
+            (
+                "4kb1r/3b1ppp/8/1r2pNB1/6P1/pP2QP2/P3R2P/6K1 b k - 1 27",
+                24,
+                vec![],
+            ),
+        ];
+        for (fen, nb_pseudo, ucis) in tests {
+            let pos: Chess = setup_fen(fen);
+            assert_eq!(pos.pseudo_legal_moves().0.len(), nb_pseudo);
+            let pseudo_ucis: HashSet<String> = pos
+                .pseudo_legal_moves()
+                .0
+                .iter()
+                .map(|m| m.to_uci(CastlingMode::Chess960).to_string())
+                .collect();
+            for uci in ucis {
+                assert!(pseudo_ucis.contains(uci));
+            }
+        }
     }
 
     #[test]
