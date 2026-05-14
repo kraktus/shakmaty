@@ -250,6 +250,10 @@ pub type MoveList = ArrayVec<
     },
 >;
 
+// FIXME arbitrarily set, pseudolegal max move number is probably higher
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default)]
+pub struct PseudoMoveList(pub MoveList);
+
 #[cfg(test)]
 mod tests {
     use core::mem;

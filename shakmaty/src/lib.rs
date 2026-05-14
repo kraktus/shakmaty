@@ -112,11 +112,11 @@ pub use bitboard::Bitboard;
 pub use board::Board;
 pub use castling_side::{ByCastlingSide, CastlingSide};
 pub use color::{ByColor, Color, ParseColorError};
-pub use m::{Move, MoveList};
+pub use m::{Move, MoveList, PseudoMoveList};
 pub use perft::perft;
 pub use position::{
     Chess, FromSetup, KnownOutcome, Outcome, ParseOutcomeError, PlayError, Position, PositionError,
-    PositionErrorKinds,
+    PositionErrorKinds, PseudoLegal,
 };
 pub use role::{ByRole, Role};
 pub use setup::{Castles, Setup};
