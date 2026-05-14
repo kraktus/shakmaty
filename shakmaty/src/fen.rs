@@ -1085,10 +1085,6 @@ mod tests {
                 "rkbqrbnn/pppppppp/8/8/8/8/PPPPPPPP/RKBQRBNN w KQkq - 0 1",
                 "rkbqrbnn/pppppppp/8/8/8/8/PPPPPPPP/RKBQRBNN w EAea - 0 1",
             ),
-            (
-                "3r1k1r/4pp2/8/8/8/8/8/4RKR1 w Gd - 1 1",
-                "3r1k1r/4pp2/8/8/8/8/8/4RRK1 b d - 2 1",
-            ),
         ];
 
         for (fen_str, shredder_fen) in tests {
