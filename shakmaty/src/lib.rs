@@ -119,7 +119,7 @@ pub use position::{
     PositionErrorKinds, PseudoLegal,
 };
 pub use role::{ByRole, Role};
-pub use setup::{Castles, Setup};
+pub use setup::{Castles, EnPassant, Setup};
 pub use square::{File, ParseSquareError, Rank, Square};
 pub use types::{CastlingMode, EnPassantMode, Piece, RemainingChecks};
 

@@ -81,6 +81,11 @@ impl Move {
         )
     }
 
+    /// Checks if the move is a Crazyhouse drop.
+    pub const fn is_drop(self) -> bool {
+        matches!(self, Move::Put { .. })
+    }
+
     /// Checks if the move converts to a different material configuration
     /// (capture, promotion, Crazyhouse drop).
     pub const fn is_conversion(self) -> bool {
