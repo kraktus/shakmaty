@@ -262,6 +262,7 @@ bitflags! {
     /// chess software (in particular Stockfish and Lichess) able to correctly
     /// handle the position, and are they likely to continue to do so in future
     /// versions?
+
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct PositionErrorKinds: u32 {
         /// There are no pieces on the board.
@@ -3912,7 +3913,11 @@ mod tests {
         use std::string::String;
 
         let tests = [
-            ("1N2k3/P7/8/8/3n4/8/2PP4/R3K2R w KQ - 0 1", 8 + 4 + 3 + 2 + 1 + 6 + 9, vec![]),
+            (
+                "1N2k3/P7/8/8/3n4/8/2PP4/R3K2R w KQ - 0 1",
+                8 + 4 + 3 + 2 + 1 + 6 + 9,
+                vec![],
+            ),
             ("8/2R1P3/8/2pp4/2k1r3/P7/8/1K6 w - - 1 55", 16, vec![]),
             ("8/8/8/r2Pp2K/8/8/4k3/8 w - e6 0 1", 7, vec!["d5e6"]),
             ("8/8/8/5k2/4Pp2/8/2B5/4K3 b - e3 0 1", 9, vec!["f4e3"]),
